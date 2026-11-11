@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Daily LINGO • Il gioco quotidiano delle parole</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%2310b981%22/><text y=%2268%22 x=%2250%22 font-family=%22sans-serif%22 font-size=%2255%22 font-weight=%22900%22 text-anchor=%22middle%22 fill=%22white%22>L</text></svg>">
+</head>
+<body class="dark-theme">
+  <!-- Toasts container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <button id="btn-help" class="icon-btn" title="Come giocare (Regole)" aria-label="Regole">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+        <button id="btn-stats" class="icon-btn" title="Statistiche" aria-label="Statistiche">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header-center">
+        <h1 class="logo"><span class="logo-prefix">Daily</span> LINGO</h1>
+        <div class="date-badge" id="current-date-badge">OGGI</div>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-challenge" class="challenge-pill-btn" title="Crea una sfida per un amico">
+          <span class="swords-icon">⚔️</span>
+          <span class="challenge-pill-label">Sfida</span>
+        </button>
+        <button id="btn-sound" class="icon-btn" title="Attiva/disattiva suono" aria-label="Suono">
+          <svg id="sound-icon-on" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <svg id="sound-icon-off" class="hidden" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          </svg>
+        </button>
+        <button id="btn-theme" class="icon-btn" title="Cambia tema chiaro/scuro" aria-label="Tema">
+          <svg id="theme-icon-sun" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg id="theme-icon-moon" class="hidden" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Challenge Mode Active Banner -->
+    <div id="challenge-banner" class="challenge-banner hidden">
+      <div class="challenge-banner-info">
+        <span class="challenge-banner-icon">⚔️</span>
+        <div class="challenge-banner-text">
+          <div><strong id="challenge-creator-name">Un amico</strong> ti ha sfidato!</div>
+          <div id="challenge-target-sub" class="challenge-target-sub">Riuscirai a fare meglio di <span id="challenge-target-num">4</span> tentativi?</div>
+        </div>
+      </div>
+      <button id="btn-exit-challenge" class="btn-exit-challenge" title="Torna al Daily LINGO di oggi">Esci ✕</button>
+    </div>
+
+    <!-- Difficulty selector tabs -->
+    <nav class="difficulty-nav">
+      <div class="difficulty-tabs">
+        <button class="diff-tab active" data-length="5">
+          <span class="diff-label">5 Lettere</span>
+          <span class="diff-badge" id="badge-diff-5"></span>
+        </button>
+        <button class="diff-tab" data-length="6">
+          <span class="diff-label">6 Lettere</span>
+          <span class="diff-badge" id="badge-diff-6"></span>
+        </button>
+        <button class="diff-tab" data-length="7">
+          <span class="diff-label">7 Lettere</span>
+          <span class="diff-badge" id="badge-diff-7"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Game Board Area -->
+    <main class="board-container">
+      <div id="board" class="board length-5" aria-label="Griglia di gioco">
+        <!-- Rows and tiles generated by game.js -->
+      </div>
+    </main>
+
+    <!-- Virtual Keyboard -->
+    <footer class="keyboard-container">
+      <div id="keyboard" class="keyboard" aria-label="Tastiera virtuale QWERTY">
+        <!-- Rendered by game.js -->
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal: Come Giocare / Regole -->
+  <div id="modal-help" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Come Giocare a Daily LINGO</h2>
+        <button class="modal-close-btn" data-close="modal-help">&times;</button>
+      </div>
+      <div class="modal-body help-content">
+        <p>Indovina la parola segreta in <strong>6 tentativi</strong>.</p>
+        <p>Ogni parola proposta deve essere un termine valido della lingua italiana e avere il numero corretto di lettere (<strong>5, 6 o 7 lettere</strong> a seconda del livello selezionato).</p>
+        <p>Dopo ogni tentativo, il colore dei tasselli cambierà per mostrarti quanto sei andato vicino:</p>
+
+        <div class="example-box">
+          <div class="example-row">
+            <div class="tile tile-correct">P</div>
+            <div class="tile">O</div>
+            <div class="tile">R</div>
+            <div class="tile">T</div>
+            <div class="tile">A</div>
+          </div>
+          <p><span class="color-tag green">VERDE</span> La lettera <strong>P</strong> è nella parola ed è al <strong>posto giusto</strong>.</p>
+        </div>
+
+        <div class="example-box">
+          <div class="example-row">
+            <div class="tile">F</div>
+            <div class="tile tile-present">I</div>
+            <div class="tile">O</div>
+            <div class="tile">R</div>
+            <div class="tile">E</div>
+          </div>
+          <p><span class="color-tag yellow">GIALLO</span> La lettera <strong>I</strong> è presente nella parola ma si trova in una <strong>posizione diversa</strong>.</p>
+        </div>
+
+        <div class="example-box">
+          <div class="example-row">
+            <div class="tile">C</div>
+            <div class="tile">A</div>
+            <div class="tile tile-absent">S</div>
+            <div class="tile">T</div>
+            <div class="tile">O</div>
+          </div>
+          <p><span class="color-tag gray">GRIGIO</span> La lettera <strong>S</strong> <strong>non fa parte</strong> della parola segreta.</p>
+        </div>
+
+        <div class="help-note">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Ogni giorno a mezzanotte c'è un nuovo Daily LINGO per ogni livello di difficoltà. Puoi usare sia la tastiera a schermo che la tastiera fisica del tuo computer!</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="modal-help">Ho capito, giochiamo!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Statistiche & Risultato -->
+  <div id="modal-stats" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="stats-title">Statistiche (5 Lettere)</h2>
+        <button class="modal-close-btn" data-close="modal-stats">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Stats numbers -->
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-number" id="stat-played">0</div>
+            <div class="stat-label">Giocate</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number" id="stat-winrate">0%</div>
+            <div class="stat-label">Vinte</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number" id="stat-streak">0</div>
+            <div class="stat-label">Striscia</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number" id="stat-max-streak">0</div>
+            <div class="stat-label">Max Striscia</div>
+          </div>
+        </div>
+
+        <!-- Guess distribution -->
+        <h3 class="section-title">Distribuzione Tentativi</h3>
+        <div id="guess-distribution" class="guess-distribution">
+          <!-- Bars injected via JS -->
+        </div>
+
+        <!-- Result message when game is completed -->
+        <div id="endgame-panel" class="endgame-panel hidden">
+          <!-- Challenge Outcome (if game was played in Challenge mode) -->
+          <div id="challenge-outcome-card" class="challenge-outcome-card hidden">
+            <div id="challenge-outcome-badge" class="challenge-outcome-badge">🏆 Hai Vinto la Sfida!</div>
+            <div id="challenge-outcome-detail" class="challenge-outcome-detail">Hai indovinato in 3 tentativi contro i 4 di Marco!</div>
+            <button id="btn-counter-challenge" class="btn btn-primary btn-counter-challenge">
+              🔥 Lancia una Contro-Sfida a <span id="counter-challenge-target-name">Marco</span>
+            </button>
+          </div>
+
+          <div class="solution-card">
+            <span class="solution-label" id="solution-label-text">La parola del giorno era:</span>
+            <span class="solution-word" id="solution-word-reveal">PORTA</span>
+          </div>
+
+          <div id="daily-countdown-wrap" class="countdown-card">
+            <span class="countdown-label">Prossimo Lingo tra:</span>
+            <span class="countdown-timer" id="next-word-countdown">--:--:--</span>
+          </div>
+
+          <div class="action-buttons">
+            <button id="btn-share" class="btn btn-share">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              Condividi Risultato
+            </button>
+            <button id="btn-challenge-word" class="btn btn-challenge-action" title="Sfida un amico su questa parola">
+              ⚔️ Sfida un Amico
+            </button>
+            <button id="btn-practice" class="btn btn-secondary">
+              Allenamento Libero
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crea Sfida Asimmetrica -->
+  <div id="modal-challenge" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>⚔️ Crea una Sfida</h2>
+        <button class="modal-close-btn" data-close="modal-challenge">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="challenge-modal-desc">
+          Scegli una parola segreta e invia il link a un amico: giocherà per indovinarla e confrontare il punteggio con il tuo!
+        </p>
+
+        <!-- Selettore Lunghezza -->
+        <div class="challenge-form-group">
+          <label class="challenge-label">Lunghezza Parola</label>
+          <div class="challenge-diff-tabs">
+            <button type="button" class="challenge-diff-tab active" data-diff="5">5 Lettere</button>
+            <button type="button" class="challenge-diff-tab" data-diff="6">6 Lettere</button>
+            <button type="button" class="challenge-diff-tab" data-diff="7">7 Lettere</button>
+          </div>
+        </div>
+
+        <!-- Parola Segreta -->
+        <div class="challenge-form-group">
+          <div class="label-with-action">
+            <label class="challenge-label" for="challenge-input-word">Parola Segreta</label>
+            <button type="button" id="btn-random-challenge-word" class="btn-text-action">🎲 Parola casuale</button>
+          </div>
+          <input type="text" id="challenge-input-word" class="challenge-input uppercase" maxlength="5" placeholder="Es. PORTA" autocomplete="off" spellcheck="false">
+          <div id="challenge-word-validation" class="validation-msg"></div>
+        </div>
+
+        <!-- Il tuo nome -->
+        <div class="challenge-form-group">
+          <label class="challenge-label" for="challenge-input-name">Il tuo Nome / Nickname (opzionale)</label>
+          <input type="text" id="challenge-input-name" class="challenge-input" maxlength="20" placeholder="Es. Marco">
+        </div>
+
+        <!-- Tentativi da battere -->
+        <div class="challenge-form-group">
+          <label class="challenge-label">Tentativi da battere (opzionale)</label>
+          <div class="target-attempts-selector">
+            <button type="button" class="target-btn" data-target="1">1</button>
+            <button type="button" class="target-btn" data-target="2">2</button>
+            <button type="button" class="target-btn" data-target="3">3</button>
+            <button type="button" class="target-btn active" data-target="4">4</button>
+            <button type="button" class="target-btn" data-target="5">5</button>
+            <button type="button" class="target-btn" data-target="6">6</button>
+            <button type="button" class="target-btn" data-target="0">Nessuno</button>
+          </div>
+        </div>
+
+        <!-- Box Link Generato & Pulsanti Condivisione -->
+        <div id="challenge-share-box" class="challenge-share-box">
+          <label class="challenge-label">Link Sfida Generato</label>
+          <div class="link-copy-group">
+            <input type="text" id="challenge-link-input" class="challenge-link-field" readonly>
+            <button type="button" id="btn-copy-challenge-link" class="btn-copy-link" title="Copia link negli appunti">📋 Copia</button>
+          </div>
+
+          <div class="social-share-buttons">
+            <button type="button" id="btn-share-whatsapp" class="btn btn-whatsapp">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.45 0-2.87-.38-4.12-1.11l-.3-.17-3.07.81.82-2.99-.19-.32a8.18 8.18 0 0 1-1.26-4.46c0-4.54 3.7-8.24 8.24-8.24zm4.84 11.64c-.26-.13-1.56-.77-1.8-.86-.24-.09-.42-.13-.59.13-.18.26-.69.86-.84 1.04-.16.18-.31.2-.58.07-.26-.13-1.11-.41-2.12-1.31-.78-.7-1.31-1.56-1.46-1.82-.16-.26-.02-.4.11-.53.12-.12.26-.31.4-.46.13-.15.18-.26.26-.44.09-.18.04-.33-.02-.46-.07-.13-.59-1.43-.81-1.96-.21-.51-.43-.44-.59-.45h-.5c-.18 0-.46.07-.7.33-.24.26-.92.9-.92 2.2 0 1.3 1.02 2.56 1.16 2.74.15.18 2 3.06 4.85 4.29.68.29 1.21.47 1.62.6.68.22 1.3.19 1.79.11.55-.08 1.56-.64 1.78-1.26.22-.61.22-1.14.16-1.25-.07-.1-.24-.16-.5-.29z"/>
+              </svg>
+              Condividi su WhatsApp
+            </button>
+            <button type="button" id="btn-share-telegram" class="btn btn-telegram">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+              </svg>
+              Telegram
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="words.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
