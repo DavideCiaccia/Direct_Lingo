@@ -1,5 +1,5 @@
 /**
- * Daily LINGO • Il gioco quotidiano delle parole
+ * Direct LINGO • Sfide di parole tra amici + Parola del Giorno (IT/EN, 5-8 lettere)
  * Engine del gioco, logica di confronto, tastiera QWERTY e persistenza
  */
 
@@ -11,7 +11,7 @@
   const KEYBOARD_LAYOUT = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['INVIO', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫']
+    ['CANC', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'INVIO']
   ];
 
   const ACCENT_MAP = {
@@ -22,8 +22,15 @@
     'Ù': 'U', 'Ú': 'U'
   };
 
+  const LENGTHS = [5, 6, 7, 8];
+  const LANG_LABELS = { it: 'Italiano', en: 'English' };
+  const LANG_FLAGS = { it: '🇮🇹', en: '🇬🇧' };
+
   // --- Stato dell'Applicazione ---
-  let currentLength = 5; // 5, 6, oppure 7
+  let currentLength = 5; // 5, 6, 7 oppure 8
+  let currentLang = 'it'; // lingua delle parole: 'it' | 'en'
+  let gameLang = 'it'; // lingua della partita in corso (in un duello è quella del link)
+  let currentView = 'challenge-creator';
   let isPracticeMode = false;
   let isChallengeMode = false;
   let challengeData = null; // { w: 'PORTA', c: 'Marco', t: 4, l: 5 }
@@ -37,6 +44,7 @@
   // Stato Modale Crea Sfida
   let challengeDiffLength = 5;
   let challengeTargetAttempts = 4;
+  let challengeAudience = 'single'; // 'single' (un amico) | 'group' (gruppo WhatsApp/Telegram)
 
   // --- Elementi DOM ---
   const boardEl = document.getElementById('board');
@@ -45,13 +53,23 @@
   const currentDateBadge = document.getElementById('current-date-badge');
   const diffTabs = document.querySelectorAll('.diff-tab');
 
+  // Viste Primarie (Redesign Social-First)
+  const tabModeChallenge = document.getElementById('tab-mode-challenge');
+  const tabModeDaily = document.getElementById('tab-mode-daily');
+  const viewChallengeCreator = document.getElementById('view-challenge-creator');
+  const viewGameplay = document.getElementById('view-gameplay');
+  const dailyDiffNav = document.getElementById('daily-diff-nav');
+  const quickInviteBanner = document.getElementById('quick-invite-banner');
+  const btnOpenCreatorFromGame = document.getElementById('btn-open-creator-from-game');
+  const btnTestChallenge = document.getElementById('btn-test-challenge');
+  const btnShareDuelResult = document.getElementById('btn-share-duel-result');
+  const counterChallengeTargetName2 = document.getElementById('counter-challenge-target-name-2');
+
   // Modali
   const modalHelp = document.getElementById('modal-help');
   const modalStats = document.getElementById('modal-stats');
-  const modalChallenge = document.getElementById('modal-challenge');
   const btnHelp = document.getElementById('btn-help');
   const btnStats = document.getElementById('btn-stats');
-  const btnChallenge = document.getElementById('btn-challenge');
   const btnChallengeWord = document.getElementById('btn-challenge-word');
   const btnCounterChallenge = document.getElementById('btn-counter-challenge');
   const btnSound = document.getElementById('btn-sound');
@@ -71,7 +89,9 @@
   const challengeBanner = document.getElementById('challenge-banner');
   const challengeCreatorName = document.getElementById('challenge-creator-name');
   const challengeTargetSub = document.getElementById('challenge-target-sub');
-  const challengeTargetNum = document.getElementById('challenge-target-num');
+  const challengeTitleSuffix = document.getElementById('challenge-title-suffix');
+  const btnLang = document.getElementById('btn-lang');
+  const langTabs = document.querySelectorAll('.lang-tab');
   const btnExitChallenge = document.getElementById('btn-exit-challenge');
   const challengeOutcomeCard = document.getElementById('challenge-outcome-card');
   const challengeOutcomeBadge = document.getElementById('challenge-outcome-badge');
@@ -85,8 +105,34 @@
   const btnShareWhatsapp = document.getElementById('btn-share-whatsapp');
   const btnShareTelegram = document.getElementById('btn-share-telegram');
   const btnRandomChallengeWord = document.getElementById('btn-random-challenge-word');
-  const challengeDiffTabs = document.querySelectorAll('.challenge-diff-tab');
+  const challengeDiffTabs = document.querySelectorAll('.challenge-diff-tab[data-diff]');
+  const audienceTabs = document.querySelectorAll('.audience-tab');
   const targetBtns = document.querySelectorAll('.target-btn');
+
+  // --- Testi in inglese per chi riceve una sfida in inglese ---
+  // L'interfaccia passa in inglese SOLO durante un duello con parola inglese
+  // (banner, tastiera, messaggi, esito finale). La creazione sfida resta in italiano.
+  function isEnUi() {
+    return !!(isChallengeMode && challengeData && !challengeData.isSelfTest && gameLang === 'en');
+  }
+
+  function tr(it, en) {
+    return isEnUi() ? en : it;
+  }
+
+  function plural(n, it1, itN, en1, enN) {
+    return n === 1 ? tr(it1, en1) : tr(itN, enN);
+  }
+
+  // Elementi statici dell'HTML con attributo data-en: salva il testo italiano e alterna
+  function applyStaticUiLang() {
+    const en = isEnUi();
+    document.querySelectorAll('[data-en]').forEach(el => {
+      if (el.dataset.it === undefined) el.dataset.it = el.textContent;
+      el.textContent = en ? el.dataset.en : el.dataset.it;
+    });
+    document.documentElement.lang = en ? 'en' : 'it';
+  }
 
   // --- Web Audio API (Sintetizzatore Sonoro) ---
   let audioCtx = null;
@@ -188,27 +234,27 @@
     return Math.floor((target - anchor) / 86400000);
   }
 
-  function getWordList(length) {
-    if (length === 5) return window.WORDS_5 || [];
-    if (length === 6) return window.WORDS_6 || [];
-    if (length === 7) return window.WORDS_7 || [];
-    return [];
+  function getWordList(length, lang = gameLang) {
+    return window.getAnswerList ? window.getAnswerList(length, lang) : [];
   }
 
-  function getValidSet(length) {
-    if (length === 5) return window.VALID_GUESSES_5 || new Set();
-    if (length === 6) return window.VALID_GUESSES_6 || new Set();
-    if (length === 7) return window.VALID_GUESSES_7 || new Set();
-    return new Set();
+  function getValidSet(length, lang = gameLang) {
+    return window.getValidGuessSet ? window.getValidGuessSet(length, lang) : new Set();
   }
 
-  function getDailyWord(length, date = new Date()) {
-    const list = getWordList(length);
-    if (!list || list.length === 0) return 'PORTA';
+  function isValidWord(word, length, lang) {
+    return word.length === length && getValidSet(length, lang).has(word);
+  }
+
+  function getDailyWord(length, lang = gameLang, date = new Date()) {
+    const list = getWordList(length, lang);
+    if (!list || list.length === 0) return 'PORTA'.slice(0, length);
 
     const dayIndex = getDayIndex(date);
-    // Hash deterministico seeded per giorno e lunghezza
-    let h = ((dayIndex + 19) * 2654435761 + length * 982451653) >>> 0;
+    // Hash deterministico seeded per giorno, lunghezza e lingua
+    // (l'italiano mantiene il seed originale per non cambiare la parola del giorno già in uso)
+    const langSalt = lang === 'en' ? 374761393 : 0;
+    let h = ((dayIndex + 19) * 2654435761 + length * 982451653 + langSalt) >>> 0;
     h = Math.imul(h ^ (h >>> 16), 2246822507);
     h = Math.imul(h ^ (h >>> 13), 3266489909);
     const rand = (h ^ (h >>> 16)) >>> 0;
@@ -274,7 +320,7 @@
 
     if (token) {
       const decoded = decodeChallenge(token);
-      if (decoded && decoded.w && /^[A-Z]{5,7}$/i.test(decoded.w)) {
+      if (decoded && decoded.w && /^[A-Z]{5,8}$/i.test(decoded.w)) {
         startChallengeGame(decoded);
         return true;
       }
@@ -282,55 +328,109 @@
     return false;
   }
 
+  // --- Gestione delle Viste (Social Duel First Architecture) ---
+  // Chiude lo stato di duello (senza cambiare vista): evita che la Parola del Giorno
+  // venga giocata "dentro" un duello e che le statistiche non vengano salvate.
+  function resetChallengeState() {
+    if (!isChallengeMode && !challengeData) return;
+    isChallengeMode = false;
+    challengeData = null;
+    challengeBanner.classList.add('hidden');
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', getCleanUrl());
+    }    applyStaticUiLang();
+  }
+
+  function setViewMode(mode) {
+    currentView = mode;
+    if (mode !== 'gameplay-duel') {
+      resetChallengeState();
+      gameLang = currentLang;
+    }
+    updateLangUI();
+
+    if (mode === 'challenge-creator') {
+      viewChallengeCreator.classList.remove('hidden');
+      viewGameplay.classList.add('hidden');
+      tabModeChallenge.classList.add('active');
+      tabModeDaily.classList.remove('active');
+      currentDateBadge.textContent = 'SFIDA UN AMICO ⚔️';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (mode === 'gameplay-daily') {
+      viewChallengeCreator.classList.add('hidden');
+      viewGameplay.classList.remove('hidden');
+      tabModeChallenge.classList.remove('active');
+      tabModeDaily.classList.add('active');
+      dailyDiffNav.classList.remove('hidden');
+      quickInviteBanner.classList.remove('hidden');
+      challengeBanner.classList.add('hidden');
+      currentDateBadge.textContent = getFormattedDate();
+      isPracticeMode = false;
+      initGameForCurrentDifficulty();
+    } else if (mode === 'gameplay-duel') {
+      viewChallengeCreator.classList.add('hidden');
+      viewGameplay.classList.remove('hidden');
+      tabModeChallenge.classList.remove('active');
+      tabModeDaily.classList.remove('active');
+      dailyDiffNav.classList.add('hidden');
+      quickInviteBanner.classList.add('hidden');
+      challengeBanner.classList.remove('hidden');
+      currentDateBadge.textContent = tr('DUELLO IN CORSO ⚔️', 'CHALLENGE ⚔️');
+    }
+    applyStaticUiLang();
+  }
+
   function startChallengeGame(data) {
+    const lang = data.g === 'en' ? 'en' : 'it'; // link vecchi senza lingua = italiano
     isChallengeMode = true;
     challengeData = data;
     isPracticeMode = false;
-    currentLength = data.l || data.w.length;
     targetWord = data.w.toUpperCase();
+    currentLength = targetWord.length;
+    gameLang = lang;
     guesses = [];
     currentInput = '';
     gameStatus = 'IN_PROGRESS';
     isRevealing = false;
 
-    // Aggiorna banner sfida
-    const creator = data.c || 'Un amico';
-    challengeCreatorName.textContent = creator;
-    const targetT = parseInt(data.t, 10) || 0;
-    if (targetT > 0) {
-      challengeTargetNum.textContent = targetT;
+    // Aggiorna banner duello (testo ricostruito ogni volta: niente nodi "persi")
+    const creator = data.c || (lang === 'en' && !data.isSelfTest ? 'A friend' : 'Un amico');
+    const langNote = ` ${LANG_FLAGS[lang]} ${currentLength} lettere`;
+    if (data.isSelfTest) {
+      challengeCreatorName.textContent = 'Prova Personale';
+      if (challengeTitleSuffix) challengeTitleSuffix.textContent = '';
+      challengeTargetSub.textContent = `Indovina in meno tentativi possibili per fissare il tuo record! ·${langNote}`;
       challengeTargetSub.classList.remove('hidden');
     } else {
-      challengeTargetSub.classList.add('hidden');
-    }
-    challengeBanner.classList.remove('hidden');
-
-    // Aggiorna bottoni tabs
-    diffTabs.forEach(tab => {
-      const tabLen = parseInt(tab.dataset.length, 10);
-      if (tabLen === currentLength) {
-        tab.classList.add('active');
+      challengeCreatorName.textContent = creator;
+      const isGroup = data.m === 'g';
+      if (challengeTitleSuffix) challengeTitleSuffix.textContent = isGroup
+        ? tr(' ha sfidato il gruppo!', ' challenged the group!')
+        : tr(' ti ha sfidato!', ' challenged you!');
+      const targetT = parseInt(data.t, 10) || 0;
+      const enNote = ` ${LANG_FLAGS[lang]} ${currentLength} letters`;
+      if (isGroup) {
+        challengeTargetSub.textContent = (targetT > 0 ? tr(`Record da battere: ${targetT} ·`, `Score to beat: ${targetT} ·`) : '') + tr(langNote, enNote);
       } else {
-        tab.classList.remove('active');
+        challengeTargetSub.textContent = targetT > 0
+          ? tr(`Obiettivo: battere ${targetT} tentativi! ·${langNote}`, `Goal: beat ${targetT} ${targetT === 1 ? 'guess' : 'guesses'}! ·${enNote}`)
+          : tr(`Parola${langNote}`, `Word${enNote}`);
       }
-    });
+      challengeTargetSub.classList.remove('hidden');
+    }
 
+    setViewMode('gameplay-duel');
     initBoard();
     initKeyboard();
-    showToast(`⚔️ Sfida di ${creator} avviata!`, 3000);
+    showToast(data.isSelfTest ? 'Gioca ora per stabilire il tuo record!'
+      : data.m === 'g' ? tr(`Sfida di gruppo di ${creator}: in bocca al lupo!`, `${creator}'s group challenge: good luck!`)
+      : tr(`Duello avviato contro ${creator}!`, `Challenge from ${creator}: good luck!`), 3000);
   }
 
   function exitChallengeMode() {
-    isChallengeMode = false;
-    challengeData = null;
-    challengeBanner.classList.add('hidden');
-
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', getCleanUrl());
-    }
-
-    initGameForCurrentDifficulty();
-    showToast('Tornato al Daily LINGO del giorno');
+    resetChallengeState();
+    setViewMode('challenge-creator');
+    showToast('Tornato alla schermata di sfida');
   }
 
   // --- Notifiche Toast ---
@@ -415,10 +515,19 @@
         keyBtn.className = 'key';
         keyBtn.dataset.key = k;
 
-        if (k === 'INVIO' || k === '⌫') {
+        if (k === 'INVIO' || k === 'CANC' || k === '⌫') {
           keyBtn.classList.add('key-wide');
         }
-        keyBtn.textContent = k;
+
+        if (k === 'CANC') {
+          keyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;margin-right:2px;"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg><span>' + tr('CANC', 'DEL') + '</span>';
+          keyBtn.setAttribute('aria-label', 'Cancella lettera');
+        } else {
+          keyBtn.textContent = k === 'INVIO' ? tr('INVIO', 'ENTER') : k;
+          if (k === 'INVIO') {
+            keyBtn.setAttribute('aria-label', 'Invia tentativo');
+          }
+        }
 
         keyBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -565,22 +674,18 @@
 
     if (currentInput.length < currentLength) {
       shakeCurrentRow();
-      showToast('Lettere insufficienti');
+      showToast(tr('Lettere insufficienti', 'Not enough letters'));
       return;
     }
 
     const guess = currentInput;
-    const validSet = getValidSet(currentLength);
 
-    // Verifica validità parola (accetta dizionario curato o parole coerenti)
-    if (validSet.size > 0 && !validSet.has(guess)) {
-      // Se non è nella lista principale, controlla se ha vocali
-      const hasVowel = /[AEIOU]/.test(guess);
-      if (!hasVowel) {
-        shakeCurrentRow();
-        showToast('Parola non valida');
-        return;
-      }
+    // Verifica validità parola sul dizionario completo della lingua della partita.
+    // La parola segreta è sempre accettata (es. sfide create prima di questa versione).
+    if (guess !== targetWord && !isValidWord(guess, currentLength, gameLang)) {
+      shakeCurrentRow();
+      showToast(tr(gameLang === 'en' ? 'Parola non presente nel dizionario inglese' : 'Parola non presente nel dizionario', 'Not in word list'));
+      return;
     }
 
     isRevealing = true;
@@ -620,7 +725,9 @@
         }
         bounceWinningRow(currentRowIndex);
 
-        const praises = ['Magnifico!', 'Splendido!', 'Geniale!', 'Bravissimo!', 'Colpo Maestro!'];
+        const praises = isEnUi()
+          ? ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!']
+          : ['Magnifico!', 'Splendido!', 'Geniale!', 'Bravissimo!', 'Colpo Maestro!'];
         const praise = praises[Math.min(guesses.length - 1, praises.length - 1)];
         setTimeout(() => {
           showToast(praise, 3000);
@@ -635,7 +742,7 @@
         }
 
         setTimeout(() => {
-          showToast(`Peccato! La parola era ${targetWord}`, 4000);
+          showToast(tr(`Peccato! La parola era ${targetWord}`, `So close! The word was ${targetWord}`), 4000);
           setTimeout(openStatsModal, 1800);
         }, 800);
       } else {
@@ -655,7 +762,7 @@
       return;
     }
 
-    if (key === '⌫' || key === 'BACKSPACE') {
+    if (key === 'CANC' || key === '⌫' || key === 'BACKSPACE' || key === 'DELETE' || key === 'DEL') {
       if (currentInput.length > 0) {
         currentInput = currentInput.slice(0, -1);
         playSound('delete');
@@ -684,26 +791,39 @@
       return;
     }
 
+    // Se l'utente sta digitando in un campo di input (es. nel modale Sfida), non interferire
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      return;
+    }
+
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-    let key = e.key.toUpperCase();
-    if (key === 'ENTER') key = 'INVIO';
-    if (key === 'BACKSPACE') key = '⌫';
+    // Nella schermata di creazione la griglia è nascosta: non accumulare lettere "fantasma"
+    if (currentView === 'challenge-creator') return;
+
+    let key = e.key ? e.key.toUpperCase() : '';
+    if (key === 'ENTER' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+      key = 'INVIO';
+    }
+    if (key === 'BACKSPACE' || key === 'DELETE' || key === 'DEL' || e.code === 'Backspace' || e.code === 'Delete' || e.keyCode === 8 || e.keyCode === 46) {
+      key = 'CANC';
+    }
 
     handleKeyPress(key);
   });
 
   // --- Gestione Stato e Persistenza Locale (localStorage) ---
-  function getStorageKey(length) {
-    return `limbo_daily_${length}`;
+  // Le chiavi italiane restano quelle originali per non azzerare statistiche e strisce esistenti
+  function getStorageKey(length, lang = gameLang) {
+    return lang === 'en' ? `limbo_daily_en_${length}` : `limbo_daily_${length}`;
   }
 
-  function getStatsKey(length) {
-    return `limbo_stats_${length}`;
+  function getStatsKey(length, lang = gameLang) {
+    return lang === 'en' ? `limbo_stats_en_${length}` : `limbo_stats_${length}`;
   }
 
   function saveDailyState() {
-    if (isPracticeMode) return;
+    if (isPracticeMode || isChallengeMode) return;
     const today = getTodayString();
     const state = {
       date: today,
@@ -718,10 +838,10 @@
     }
   }
 
-  function loadDailyState(length) {
+  function loadDailyState(length, lang = gameLang) {
     const today = getTodayString();
     try {
-      const raw = localStorage.getItem(getStorageKey(length));
+      const raw = localStorage.getItem(getStorageKey(length, lang));
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (data && data.date === today) {
@@ -754,7 +874,7 @@
   }
 
   function recordGameResult(isWin, attemptCount) {
-    if (isPracticeMode) return;
+    if (isPracticeMode || isChallengeMode) return;
     const stats = loadStats(currentLength);
     stats.played += 1;
 
@@ -777,23 +897,24 @@
     currentLength = newLength;
     isPracticeMode = false;
 
-    // Aggiorna bottoni tabs
-    diffTabs.forEach(tab => {
-      const tabLen = parseInt(tab.dataset.length, 10);
-      if (tabLen === currentLength) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
-    });
+    syncDiffTabs();
+    currentDateBadge.textContent = getFormattedDate();
 
     // Inizializza partita per questa difficoltà
     initGameForCurrentDifficulty();
   }
 
+  function syncDiffTabs() {
+    diffTabs.forEach(tab => {
+      tab.classList.toggle('active', parseInt(tab.dataset.length, 10) === currentLength);
+    });
+  }
+
   function initGameForCurrentDifficulty() {
     currentInput = '';
     isRevealing = false;
+    if (!LENGTHS.includes(currentLength)) currentLength = 5;
+    syncDiffTabs();
 
     const savedState = loadDailyState(currentLength);
     if (savedState) {
@@ -814,6 +935,22 @@
   }
 
   function startPracticeGame() {
+    // L'allenamento si gioca sempre nella schermata di gioco, fuori da un eventuale duello
+    if (isChallengeMode || currentView !== 'gameplay-daily') {
+      resetChallengeState();
+      currentView = 'gameplay-daily';
+      gameLang = currentLang;
+      viewChallengeCreator.classList.add('hidden');
+      viewGameplay.classList.remove('hidden');
+      tabModeChallenge.classList.remove('active');
+      tabModeDaily.classList.add('active');
+      dailyDiffNav.classList.remove('hidden');
+      quickInviteBanner.classList.remove('hidden');
+      currentDateBadge.textContent = 'ALLENAMENTO';
+      updateLangUI();
+    }
+    if (currentLength < 5 || currentLength > 8) currentLength = 5;
+    syncDiffTabs();
     isPracticeMode = true;
     currentInput = '';
     isRevealing = false;
@@ -830,10 +967,10 @@
   }
 
   function updateBadges() {
-    [5, 6, 7].forEach(len => {
+    LENGTHS.forEach(len => {
       const badge = document.getElementById(`badge-diff-${len}`);
       if (!badge) return;
-      const state = loadDailyState(len);
+      const state = loadDailyState(len, currentLang);
       if (state && state.gameStatus === 'WON') {
         badge.textContent = '✓';
         badge.style.color = '#ffffff';
@@ -852,7 +989,8 @@
   }
 
   function openStatsModal() {
-    statsTitle.textContent = `Statistiche (${currentLength} Lettere)`;
+    statsTitle.textContent = tr(`Statistiche ${LANG_FLAGS[gameLang]} (${currentLength} Lettere)`, `Statistics ${LANG_FLAGS[gameLang]} (${currentLength} letters)`);
+    applyStaticUiLang();
     const stats = loadStats(currentLength);
 
     document.getElementById('stat-played').textContent = stats.played;
@@ -903,36 +1041,63 @@
       if (isChallengeMode && challengeData) {
         challengeOutcomeCard.classList.remove('hidden');
         document.getElementById('daily-countdown-wrap').classList.add('hidden');
-        document.getElementById('solution-label-text').textContent = 'La parola segreta della sfida era:';
+        document.getElementById('solution-label-text').textContent = tr('La parola segreta della sfida era:', 'The secret word was:');
 
         const creator = challengeData.c || 'Un amico';
         counterChallengeTargetName.textContent = creator;
+        counterChallengeTargetName2.textContent = creator;
         const targetT = parseInt(challengeData.t, 10) || 0;
+        const isSelfTest = !!challengeData.isSelfTest;
+        const isGroup = challengeData.m === 'g';
+        btnCounterChallenge.classList.toggle('hidden', isSelfTest);
+        btnShareDuelResult.classList.toggle('hidden', isSelfTest);
+        // In gruppo l'azione principale è pubblicare la griglia (la chat diventa la classifica)
+        if (isGroup) {
+          btnShareDuelResult.textContent = tr('📋 Pubblica la tua griglia nel gruppo', '📋 Post your grid in the group');
+          btnShareDuelResult.className = 'btn btn-primary btn-whatsapp-group';
+          btnCounterChallenge.textContent = tr('🔥 Lancia tu la prossima sfida al gruppo', '🔥 Set the next challenge for the group');
+          btnCounterChallenge.className = 'btn btn-whatsapp-subtle';
+          btnShareDuelResult.parentNode.insertBefore(btnShareDuelResult, btnCounterChallenge);
+        } else {
+          btnCounterChallenge.textContent = challengeData.c ? tr(`🔥 Lancia la Contro-Sfida a ${challengeData.c}`, `🔥 Challenge ${challengeData.c} back`) : tr('🔥 Lancia la Contro-Sfida', '🔥 Challenge them back');
+          btnCounterChallenge.className = 'btn btn-primary btn-counter-challenge';
+          btnShareDuelResult.textContent = challengeData.c ? tr(`💬 Invia il risultato su WhatsApp a ${challengeData.c}`, `💬 Send your result to ${challengeData.c} on WhatsApp`) : tr('💬 Invia il risultato su WhatsApp', '💬 Send your result on WhatsApp');
+          btnShareDuelResult.className = 'btn btn-whatsapp-subtle';
+          btnCounterChallenge.parentNode.insertBefore(btnCounterChallenge, btnShareDuelResult);
+        }
 
-        if (gameStatus === 'WON') {
+        if (isSelfTest) {
+          if (gameStatus === 'WON') {
+            challengeOutcomeBadge.textContent = `🎯 Record: ${guesses.length} ${guesses.length === 1 ? "tentativo" : "tentativi"}`;
+            challengeOutcomeDetail.textContent = `Torna su "Sfida un Amico": imposta ${guesses.length} come tentativi da battere e invia la sfida.`;
+          } else {
+            challengeOutcomeBadge.textContent = '😅 Non indovinata!';
+            challengeOutcomeDetail.textContent = 'Forse è troppo difficile: perfetta per mettere in crisi i tuoi amici.';
+          }
+        } else if (gameStatus === 'WON') {
           if (targetT > 0) {
             if (guesses.length < targetT) {
-              challengeOutcomeBadge.textContent = '🏆 Hai Battuto ' + creator + '!';
-              challengeOutcomeDetail.textContent = `Incredibile! Hai indovinato in ${guesses.length} tentativi contro i ${targetT} impiegati da ${creator}!`;
+              challengeOutcomeBadge.textContent = tr(`🏆 Hai Battuto ${creator}!`, `🏆 You beat ${creator}!`);
+              challengeOutcomeDetail.textContent = tr(`Incredibile! Hai indovinato in ${guesses.length} tentativi contro i ${targetT} impiegati da ${creator}!`, `Amazing! You got it in ${guesses.length} vs ${creator}'s ${targetT}.`);
             } else if (guesses.length === targetT) {
-              challengeOutcomeBadge.textContent = '🤝 Pareggio con ' + creator + '!';
-              challengeOutcomeDetail.textContent = `Entrambi avete indovinato la parola esattamente in ${guesses.length} tentativi!`;
+              challengeOutcomeBadge.textContent = tr(`🤝 Pareggio con ${creator}!`, `🤝 It's a tie with ${creator}!`);
+              challengeOutcomeDetail.textContent = tr(`Entrambi avete indovinato la parola esattamente in ${guesses.length} tentativi!`, `You both got it in exactly ${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}.`);
             } else {
-              challengeOutcomeBadge.textContent = '👍 Sfida Superata!';
-              challengeOutcomeDetail.textContent = `Hai indovinato la parola in ${guesses.length} tentativi (${creator} era stato più veloce con ${targetT} tentativi).`;
+              challengeOutcomeBadge.textContent = tr('👍 Sfida Superata!', '👍 Solved!');
+              challengeOutcomeDetail.textContent = tr(`Hai indovinato la parola in ${guesses.length} tentativi (${creator} era stato più veloce con ${targetT} tentativi).`, `You got it in ${guesses.length}, but ${creator} was faster with ${targetT}.`);
             }
           } else {
-            challengeOutcomeBadge.textContent = '🏆 Sfida Superata!';
-            challengeOutcomeDetail.textContent = `Hai indovinato la parola segreta scelta da ${creator} in ${guesses.length} tentativi!`;
+            challengeOutcomeBadge.textContent = tr('🏆 Sfida Superata!', '🏆 Solved!');
+            challengeOutcomeDetail.textContent = tr(`Hai indovinato la parola segreta scelta da ${creator} in ${guesses.length} tentativi!`, `You guessed ${creator}'s secret word in ${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}!`);
           }
         } else {
-          challengeOutcomeBadge.textContent = '💀 Sfida Persa!';
-          challengeOutcomeDetail.textContent = `Non sei riuscito a indovinare la parola in 6 tentativi. Questa volta il punto va a ${creator}!`;
+          challengeOutcomeBadge.textContent = tr('💀 Sfida Persa!', '💀 Challenge lost!');
+          challengeOutcomeDetail.textContent = tr(`Non sei riuscito a indovinare la parola in 6 tentativi. Questa volta il punto va a ${creator}!`, `You didn't get it in 6 guesses. This round goes to ${creator}!`);
         }
       } else {
         challengeOutcomeCard.classList.add('hidden');
-        document.getElementById('daily-countdown-wrap').classList.remove('hidden');
-        document.getElementById('solution-label-text').textContent = 'La parola del giorno era:';
+        document.getElementById('daily-countdown-wrap').classList.toggle('hidden', isPracticeMode);
+        document.getElementById('solution-label-text').textContent = isPracticeMode ? 'La parola era:' : 'La parola del giorno era:';
       }
     } else {
       endgamePanel.classList.add('hidden');
@@ -944,10 +1109,45 @@
   function closeAllModals() {
     modalHelp.classList.add('hidden');
     modalStats.classList.add('hidden');
-    modalChallenge.classList.add('hidden');
   }
 
   // --- Condivisione Risultato con Emoji ---
+  function buildEmojiGrid() {
+    return guesses.map(g => evaluateGuess(g, targetWord)
+      .map(r => r === 'correct' ? '🟩' : r === 'present' ? '🟨' : '⬛').join('')).join('\n');
+  }
+
+  // Link della sfida "pulito" (senza flag interni) da ricondividere: non contiene la parola in chiaro
+  function getShareableChallengeUrl() {
+    if (!challengeData) return getCleanUrl();
+    const shareData = Object.assign({}, challengeData);
+    delete shareData.isSelfTest;
+    return generateChallengeUrl(shareData);
+  }
+
+  // Messaggio risultato SENZA SPOILER: mai la parola, solo esito + griglia
+  function buildDuelResultMessage() {
+    const creator = challengeData.c || '';
+    const score = gameStatus === 'WON' ? `${guesses.length}/${MAX_ATTEMPTS}` : `X/${MAX_ATTEMPTS}`;
+    const grid = buildEmojiGrid();
+    const en = isEnUi();
+    const info = en ? `English, ${currentLength} letters` : `${gameLang === 'en' ? 'inglese' : 'italiano'}, ${currentLength} lettere`;
+    if (challengeData.m === 'g') {
+      const verdict = gameStatus === 'WON'
+        ? (en ? `Solved in ${score}` : `Indovinata in ${score}`)
+        : (en ? `Not solved (${score})` : `Non l'ho indovinata (${score})`);
+      return en
+        ? `${creator ? creator + "'s challenge" : 'Challenge'} on Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nCan you do better?\n${getShareableChallengeUrl()}`
+        : `Sfida${creator ? ' di ' + creator : ''} su Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nChi fa meglio?\n${getShareableChallengeUrl()}`;
+    }
+    if (en) {
+      const verdict = gameStatus === 'WON' ? `I got it in ${score}!` : `I didn't get it (${score}).`;
+      return `Hi${creator ? ' ' + creator : ''}! I played your Direct LINGO challenge (${info}).\n${verdict}\n\n${grid}\n\nWant a rematch? Create a new challenge here:\n${getCleanUrl()}`;
+    }
+    const verdict = gameStatus === 'WON' ? `L'ho indovinata in ${score}!` : `Non sono riuscito a indovinarla (${score}).`;
+    return `Ciao${creator ? ' ' + creator : ''}! Ho giocato alla tua sfida su Direct LINGO (${info}).\n${verdict}\n\n${grid}\n\nVuoi la rivincita? Crea una nuova sfida qui:\n${getCleanUrl()}`;
+  }
+
   function shareResult() {
     const today = new Date();
     const dateFormatted = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -967,14 +1167,17 @@
     let shareText;
     if (isChallengeMode && challengeData) {
       const creator = challengeData.c || 'un amico';
-      shareText = `⚔️ Sfida di ${creator} su Daily LINGO (${currentLength} lettere)\n${scoreStr} tentativi\n\n${emojiGrid}\nAccetta la sfida anche tu:\n${generateChallengeUrl(challengeData)}`;
+      shareText = isEnUi()
+        ? `${challengeData.c ? challengeData.c + "'s challenge" : 'Challenge'} on Direct LINGO (English, ${currentLength} letters)\n${scoreStr}\n\n${emojiGrid}\nTake the challenge:\n${getShareableChallengeUrl()}`
+        : `Sfida di ${creator} su Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere)\n${scoreStr} tentativi\n\n${emojiGrid}\nAccetta la sfida anche tu:\n${getShareableChallengeUrl()}`;
     } else {
-      shareText = `Daily LINGO (${currentLength} lettere) • ${dateFormatted}\n${scoreStr} tentativi\n\n${emojiGrid}`;
+      const label = isPracticeMode ? 'Allenamento' : dateFormatted;
+      shareText = `Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere) • ${label}\n${scoreStr} tentativi\n\n${emojiGrid}\n${getCleanUrl()}`;
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareText).then(() => {
-        showToast('Risultato copiato negli appunti! 📋');
+        showToast(tr('Risultato copiato negli appunti! 📋', 'Result copied to clipboard! 📋'));
       }).catch(() => {
         promptFallbackShare(shareText);
       });
@@ -984,25 +1187,28 @@
   }
 
   function promptFallbackShare(text) {
-    showToast('Seleziona e copia il risultato');
+    showToast(tr('Seleziona e copia il risultato', 'Select and copy your result'));
   }
 
   // --- Countdown alla Mezzanotte ---
+  let lastDayString = getTodayString();
+
   function updateCountdown() {
     const now = new Date();
     const midnight = new Date();
     midnight.setHours(24, 0, 0, 0);
-
     const diff = midnight - now;
-    if (diff <= 0) {
-      nextWordCountdown.textContent = '00:00:00';
-      // Ricarica la parola del giorno se cambia la data
-      const today = getTodayString();
-      const saved = loadDailyState(currentLength);
-      if (!saved || saved.date !== today) {
+
+    // Cambio di data: aggiorna la Parola del Giorno solo se la si sta giocando
+    // (mai durante un duello, un allenamento, un'animazione o nella schermata di creazione)
+    const today = getTodayString();
+    if (today !== lastDayString) {
+      lastDayString = today;
+      if (currentView === 'gameplay-daily' && !isChallengeMode && !isPracticeMode && !isRevealing) {
+        currentDateBadge.textContent = getFormattedDate();
         initGameForCurrentDifficulty();
+        showToast('È arrivata una nuova Parola del Giorno! 📅', 3000);
       }
-      return;
     }
 
     const hrs = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
@@ -1131,18 +1337,43 @@
     }
   }
 
-  // --- Gestione Modale Crea Sfida ---
-  function openChallengeModal(prefillWord = '', prefillAttempts = 4, targetName = '') {
-    challengeDiffLength = prefillWord ? prefillWord.length : currentLength;
-    challengeDiffTabs.forEach(tab => {
-      if (parseInt(tab.dataset.diff, 10) === challengeDiffLength) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
-    });
+  // --- Gestione Modale e Hub Crea Sfida ---
+  function setShareBoxEnabled(enabled) {
+    const shareBox = document.getElementById('challenge-share-box');
+    shareBox.style.opacity = enabled ? '1' : '0.45';
+    shareBox.style.pointerEvents = enabled ? 'auto' : 'none';
+  }
 
+  function syncChallengeDiffTabs() {
+    challengeDiffTabs.forEach(tab => {
+      tab.classList.toggle('active', parseInt(tab.dataset.diff, 10) === challengeDiffLength);
+    });
     challengeInputWord.maxLength = challengeDiffLength;
+    const sample = getWordList(challengeDiffLength, currentLang)[0];
+    const examples = { it: { 5: 'CUORE', 6: 'CAMINO', 7: 'GIOVANE', 8: 'MONTAGNA' }, en: { 5: 'HEART', 6: 'GARDEN', 7: 'HISTORY', 8: 'MOUNTAIN' } };
+    challengeInputWord.placeholder = `Es. ${(examples[currentLang] || {})[challengeDiffLength] || sample || ''}`;
+  }
+
+  function setAudience(audience) {
+    challengeAudience = audience === 'group' ? 'group' : 'single';
+    audienceTabs.forEach(t => t.classList.toggle('active', t.dataset.audience === challengeAudience));
+    const waLabel = btnShareWhatsapp.querySelector('span');
+    if (waLabel) waLabel.textContent = challengeAudience === 'group' ? 'Sfida il gruppo' : 'Sfida su WhatsApp';
+    const hint = document.getElementById('audience-hint');
+    if (hint) {
+      hint.textContent = challengeAudience === 'group'
+        ? '👥 Tutti giocano lo stesso link e pubblicano solo la griglia in chat: la chat diventa la classifica.'
+        : '👤 Sfida uno-contro-uno: alla fine il tuo amico può lanciarti la contro-sfida.';
+    }
+  }
+
+  function loadCreatorWithWord(prefillWord = '', prefillAttempts = 4, targetName = '', prefillLang = null, prefillAudience = null) {
+    setViewMode('challenge-creator');
+    if (prefillLang && prefillLang !== currentLang) setLanguage(prefillLang, { silent: true });
+    if (prefillAudience) setAudience(prefillAudience);
+
+    challengeDiffLength = prefillWord && LENGTHS.includes(prefillWord.length) ? prefillWord.length : 5;
+    syncChallengeDiffTabs();
     challengeInputWord.value = prefillWord ? prefillWord.toUpperCase() : '';
 
     if (targetName) {
@@ -1151,89 +1382,171 @@
       challengeInputName.placeholder = 'Es. Marco';
     }
 
-    challengeTargetAttempts = prefillAttempts !== undefined ? prefillAttempts : 4;
+    challengeTargetAttempts = Math.min(Math.max(parseInt(prefillAttempts, 10) || 0, 0), MAX_ATTEMPTS);
     targetBtns.forEach(btn => {
-      if (parseInt(btn.dataset.target, 10) === challengeTargetAttempts) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      btn.classList.toggle('active', parseInt(btn.dataset.target, 10) === challengeTargetAttempts);
     });
 
     validateAndRefreshChallengeLink();
-    modalChallenge.classList.remove('hidden');
+    if (!prefillWord) challengeInputWord.focus();
+  }
+
+  function playTestChallenge() {
+    const word = challengeInputWord.value.toUpperCase().replace(/[^A-Z]/g, '');
+    if (!isValidWord(word, challengeDiffLength, currentLang)) {
+      showToast('Inserisci prima una parola valida!');
+      return;
+    }
+
+    startChallengeGame({
+      w: word,
+      c: challengeInputName.value.trim() || 'Tu',
+      t: 0,
+      l: challengeDiffLength,
+      g: currentLang,
+      isSelfTest: true
+    });
   }
 
   function validateAndRefreshChallengeLink() {
-    let word = challengeInputWord.value.toUpperCase().replace(/[^A-Z]/g, '');
+    const word = challengeInputWord.value.toUpperCase().replace(/[^A-Z]/g, '');
     challengeInputWord.value = word;
-
-    const validSet = getValidSet(challengeDiffLength);
-    const isValidLen = word.length === challengeDiffLength;
-    const isWordInDict = validSet.has(word);
-    const hasVowels = /[AEIOU]/.test(word);
-
-    const shareBox = document.getElementById('challenge-share-box');
+    const langName = currentLang === 'en' ? 'inglese' : 'italiano';
 
     if (word.length === 0) {
-      challengeWordValidation.textContent = `Digita una parola di ${challengeDiffLength} lettere`;
+      challengeWordValidation.textContent = `Digita una parola di ${challengeDiffLength} lettere (${LANG_FLAGS[currentLang]} ${langName})`;
       challengeWordValidation.className = 'validation-msg';
       challengeLinkInput.value = '';
-      shareBox.style.opacity = '0.45';
-      shareBox.style.pointerEvents = 'none';
+      setShareBoxEnabled(false);
       return;
     }
 
-    if (!isValidLen) {
+    if (word.length !== challengeDiffLength) {
       challengeWordValidation.textContent = `Mancano ${challengeDiffLength - word.length} lettere`;
       challengeWordValidation.className = 'validation-msg invalid';
       challengeLinkInput.value = '';
-      shareBox.style.opacity = '0.45';
-      shareBox.style.pointerEvents = 'none';
+      setShareBoxEnabled(false);
       return;
     }
 
-    if (isWordInDict || (isValidLen && hasVowels)) {
-      challengeWordValidation.textContent = `✓ Parola valida della lingua italiana (${challengeDiffLength} lettere)`;
+    if (isValidWord(word, challengeDiffLength, currentLang)) {
+      challengeWordValidation.textContent = `✓ Parola valida ${LANG_FLAGS[currentLang]} (${challengeDiffLength} lettere)`;
       challengeWordValidation.className = 'validation-msg valid';
 
-      const creator = challengeInputName.value.trim() || '';
       const payload = {
         w: word,
-        c: creator,
+        c: challengeInputName.value.trim() || '',
         t: challengeTargetAttempts,
-        l: challengeDiffLength
+        l: challengeDiffLength,
+        g: currentLang
       };
+      if (challengeAudience === 'group') payload.m = 'g';
 
-      const url = generateChallengeUrl(payload);
-      challengeLinkInput.value = url;
-      shareBox.style.opacity = '1';
-      shareBox.style.pointerEvents = 'auto';
+      challengeLinkInput.value = generateChallengeUrl(payload);
+      setShareBoxEnabled(true);
     } else {
-      challengeWordValidation.textContent = `✕ Parola non riconosciuta nel dizionario italiano`;
+      challengeWordValidation.textContent = `✕ Parola non presente nel dizionario ${langName}`;
       challengeWordValidation.className = 'validation-msg invalid';
       challengeLinkInput.value = '';
-      shareBox.style.opacity = '0.45';
-      shareBox.style.pointerEvents = 'none';
+      setShareBoxEnabled(false);
     }
   }
 
   function getChallengeShareMessage() {
-    const creator = challengeInputName.value.trim() || 'Un tuo amico';
+    const isGroup = challengeAudience === 'group';
+    const en = currentLang === 'en'; // sfida in inglese → invito in inglese
+    const name = challengeInputName.value.trim();
     const target = challengeTargetAttempts;
     const url = challengeLinkInput.value;
+    const len = challengeDiffLength;
 
-    let msg = `🔥 ${creator} ti ha sfidato a Daily LINGO!\n`;
+    if (en) {
+      const tentEn = n => `${n} ${n === 1 ? 'guess' : 'guesses'}`;
+      if (isGroup) {
+        let msg = `${name || 'Someone'} is challenging the group on Direct LINGO (English, ${len} letters)\n`;
+        msg += `I picked a secret word: who can guess it in the fewest tries?\n`;
+        if (target > 0) msg += `🎯 Score to beat: ${tentEn(target)}\n`;
+        msg += `\nPlay here:\n${url}`;
+        return msg;
+      }
+      let msg = `${name || 'A friend'} challenged you on Direct LINGO (English, ${len} letters)\n`;
+      msg += target > 0
+        ? `I picked a secret word: can you guess it in fewer than ${tentEn(target)}?\n\n`
+        : `I picked a secret word: can you guess it?\n\n`;
+      msg += `Play here:\n${url}`;
+      return msg;
+    }
+
+    const tent = n => `${n} ${n === 1 ? 'tentativo' : 'tentativi'}`;
+    if (isGroup) {
+      let msg = `${name || 'Qualcuno'} sfida il gruppo su Direct LINGO (italiano, ${len} lettere)\n`;
+      msg += `Ho scelto una parola segreta: chi la indovina in meno tentativi?\n`;
+      if (target > 0) msg += `🎯 Record da battere: ${tent(target)}\n`;
+      msg += `\nGioca qui:\n${url}`;
+      return msg;
+    }
+
+    let msg = `🔥 ${name || 'Un tuo amico'} ti ha sfidato su Direct LINGO! (${LANG_FLAGS[currentLang]} ${len} lettere)\n`;
     if (target > 0) {
-      msg += `"Ho scelto una parola segreta: riuscirai a indovinarla in meno di ${target} tentativi?"\n\n`;
+      msg += `"Ho scelto una parola segreta: riesci a indovinarla in meno di ${tent(target)}?"\n\n`;
     } else {
       msg += `"Ho scelto una parola segreta: riuscirai a indovinarla?"\n\n`;
     }
-    msg += `👉 Accetta la sfida qui:\n${url}`;
+    msg += `👉 Clicca qui e accetta la sfida:\n${url}`;
     return msg;
   }
 
+  // --- Lingua delle parole (IT / EN) ---
+  function updateLangUI() {
+    const inDuel = currentView === 'gameplay-duel';
+    const shownLang = inDuel ? gameLang : currentLang;
+    if (btnLang) {
+      btnLang.textContent = `${LANG_FLAGS[shownLang]} ${shownLang.toUpperCase()}`;
+      btnLang.disabled = inDuel;
+      btnLang.title = inDuel ? 'La lingua del duello è decisa da chi ti ha sfidato' : `Lingua delle parole: ${LANG_LABELS[currentLang]} (clicca per cambiare)`;
+    }
+    langTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.lang === currentLang));
+    document.documentElement.lang = currentLang;
+  }
+
+  function setLanguage(lang, opts = {}) {
+    lang = lang === 'en' ? 'en' : 'it';
+    if (isRevealing || currentView === 'gameplay-duel') return;
+    const changed = lang !== currentLang;
+    currentLang = lang;
+    gameLang = lang;
+    try { localStorage.setItem('limbo_lang', lang); } catch (e) {}
+    updateLangUI();
+    if (!changed) return;
+
+    if (currentView === 'gameplay-daily') {
+      isPracticeMode = false;
+      currentDateBadge.textContent = getFormattedDate();
+      initGameForCurrentDifficulty();
+    } else if (currentView === 'challenge-creator' && !opts.silent) {
+      syncChallengeDiffTabs();
+      challengeInputWord.value = '';
+      validateAndRefreshChallengeLink();
+    }
+    updateBadges();
+    if (!opts.silent) showToast(`Parole in ${LANG_LABELS[lang]} ${LANG_FLAGS[lang]}`, 1600);
+  }
+
   // --- Event Listeners UI ---
+  // Navigazione Principale (Sfida un Amico vs Parola del Giorno)
+  if (tabModeChallenge) {
+    tabModeChallenge.addEventListener('click', () => setViewMode('challenge-creator'));
+  }
+  if (tabModeDaily) {
+    tabModeDaily.addEventListener('click', () => setViewMode('gameplay-daily'));
+  }
+  if (btnOpenCreatorFromGame) {
+    btnOpenCreatorFromGame.addEventListener('click', () => setViewMode('challenge-creator'));
+  }
+  if (btnTestChallenge) {
+    btnTestChallenge.addEventListener('click', playTestChallenge);
+  }
+
   diffTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const len = parseInt(tab.dataset.length, 10);
@@ -1248,44 +1561,49 @@
   btnShare.addEventListener('click', shareResult);
   btnPractice.addEventListener('click', startPracticeGame);
 
-  // Event Listeners Sfida Asimmetrica
-  btnChallenge.addEventListener('click', () => openChallengeModal('', 4, ''));
+  // Azioni Post-Partita per Sfida Sociale
   if (btnChallengeWord) {
     btnChallengeWord.addEventListener('click', () => {
       closeAllModals();
-      openChallengeModal(targetWord, guesses.length, '');
+      loadCreatorWithWord(targetWord, gameStatus === 'WON' ? guesses.length : 0, '', gameLang);
     });
   }
   if (btnCounterChallenge) {
     btnCounterChallenge.addEventListener('click', () => {
       closeAllModals();
       const opp = challengeData ? challengeData.c : '';
-      openChallengeModal('', guesses.length, opp);
+      const audience = challengeData && challengeData.m === 'g' ? 'group' : 'single';
+      loadCreatorWithWord('', gameStatus === 'WON' ? guesses.length : 4, audience === 'group' ? '' : opp, gameLang, audience);
+    });
+  }
+  if (btnShareDuelResult) {
+    btnShareDuelResult.addEventListener('click', () => {
+      if (!challengeData) return;
+      const msg = buildDuelResultMessage();
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
     });
   }
   if (btnExitChallenge) {
     btnExitChallenge.addEventListener('click', exitChallengeMode);
   }
 
-  // Modale creazione sfida: tabs difficoltà
+  // Tabs difficoltà nella schermata creazione
   challengeDiffTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       challengeDiffLength = parseInt(tab.dataset.diff, 10);
-      challengeDiffTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      challengeInputWord.maxLength = challengeDiffLength;
+      syncChallengeDiffTabs();
       challengeInputWord.value = '';
       validateAndRefreshChallengeLink();
     });
   });
 
-  // Modale creazione sfida: input parola e nome
+  // Input parola e nome
   challengeInputWord.addEventListener('input', validateAndRefreshChallengeLink);
   challengeInputName.addEventListener('input', validateAndRefreshChallengeLink);
 
   // Parola casuale
   btnRandomChallengeWord.addEventListener('click', () => {
-    const list = getWordList(challengeDiffLength);
+    const list = getWordList(challengeDiffLength, currentLang);
     if (list && list.length > 0) {
       challengeInputWord.value = list[Math.floor(Math.random() * list.length)];
       validateAndRefreshChallengeLink();
@@ -1348,13 +1666,29 @@
   });
 
   // Chiusura al click sul backdrop
-  [modalHelp, modalStats, modalChallenge].forEach(m => {
+  [modalHelp, modalStats].forEach(m => {
     if (!m) return;
     m.addEventListener('click', (e) => {
       if (e.target === m) {
         closeAllModals();
       }
     });
+  });
+
+  // Selettore destinatari (amico singolo / gruppo)
+  audienceTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      setAudience(tab.dataset.audience);
+      validateAndRefreshChallengeLink();
+    });
+  });
+
+  // Selettore lingua (pill in header + tab nella schermata di creazione)
+  if (btnLang) {
+    btnLang.addEventListener('click', () => setLanguage(currentLang === 'it' ? 'en' : 'it'));
+  }
+  langTabs.forEach(tab => {
+    tab.addEventListener('click', () => setLanguage(tab.dataset.lang));
   });
 
   // Mostra regole al primo accesso assoluto
@@ -1368,14 +1702,27 @@
 
   // --- Avvio Iniziale ---
   function start() {
-    currentDateBadge.textContent = getFormattedDate();
     initTheme();
     initSound();
+    try {
+      const savedLang = localStorage.getItem('limbo_lang');
+      if (savedLang === 'en' || savedLang === 'it') currentLang = savedLang;
+    } catch (e) {}
+    gameLang = currentLang;
 
     // Controlla se l'utente ha aperto un link di sfida (?sfida=... o #sfida=...)
     const hasChallenge = checkUrlForChallenge();
     if (!hasChallenge) {
-      initGameForCurrentDifficulty();
+      // Social First: Mostra subito la schermata di creazione sfida!
+      setViewMode('challenge-creator');
+      syncChallengeDiffTabs();
+      setAudience('single');
+      // Precompila con una bella parola suggerita
+      const initialList = getWordList(5, currentLang);
+      if (initialList && initialList.length > 0) {
+        challengeInputWord.value = initialList[Math.floor(Math.random() * initialList.length)];
+      }
+      validateAndRefreshChallengeLink();
       checkFirstVisit();
     }
   }
