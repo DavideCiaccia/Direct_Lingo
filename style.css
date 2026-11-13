@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Daily LINGO • Modern Minimalist Word Game Styling
+   Direct LINGO • Modern Minimalist Word Game Styling
    ========================================================================== */
 
 :root {
@@ -173,6 +173,271 @@ html, body {
 }
 
 /* ==========================================================================
+   Primary Mode Navigation (Challenge Creator vs Daily Game)
+   ========================================================================== */
+.main-mode-nav {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 440px;
+  margin: 6px auto 10px;
+}
+
+.mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  border: 1.5px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-main);
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.mode-tab:hover {
+  background-color: var(--bg-elevated);
+  color: var(--text-main);
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.28));
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+}
+
+#tab-mode-daily.mode-tab.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(5, 150, 105, 0.28));
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.mode-highlight-badge {
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.05em;
+  animation: pulseBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.9; }
+}
+
+/* ==========================================================================
+   Creator Hub Container (Main Screen when creating challenges)
+   ========================================================================== */
+.creator-hub-container {
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0 16px;
+  animation: fadeIn 0.25s ease;
+}
+
+.creator-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-md);
+}
+
+.creator-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.creator-badge {
+  display: inline-block;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.creator-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.creator-subtitle {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.creator-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.03em;
+}
+
+.btn-whatsapp-giant {
+  flex: 1.3;
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: #ffffff;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+}
+
+.btn-whatsapp-giant:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-telegram-giant {
+  flex: 1;
+  background: linear-gradient(135deg, #229ED9, #0088cc);
+  color: #ffffff;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(34, 158, 217, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+}
+
+.btn-telegram-giant:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-secondary-subtle {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  font-size: 0.78rem;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-secondary-subtle:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  border-color: var(--border-active);
+}
+
+/* ==========================================================================
+   Gameplay Container & Quick Invite
+   ========================================================================== */
+.gameplay-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  animation: fadeIn 0.25s ease;
+}
+
+.quick-invite-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin: 2px 0 4px;
+}
+
+.btn-pill-cta {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pill-cta:hover {
+  filter: brightness(1.1);
+}
+
+.btn-whatsapp-subtle {
+  background-color: rgba(37, 211, 102, 0.15);
+  border: 1px solid #25D366;
+  color: #25D366;
+  font-size: 0.85rem;
+}
+
+.btn-whatsapp-subtle:hover {
+  background-color: #25D366;
+  color: #ffffff;
+}
+
+/* ==========================================================================
    Difficulty Switcher Tabs
    ========================================================================== */
 .difficulty-nav {
@@ -266,6 +531,17 @@ html, body {
   grid-template-columns: repeat(7, 1fr);
   aspect-ratio: 7 / 6;
   max-width: 420px;
+}
+
+.board.length-8 {
+  grid-template-columns: repeat(8, 1fr);
+  aspect-ratio: 8 / 6;
+  max-width: 460px;
+  gap: 5px;
+}
+
+.board.length-8 .tile {
+  font-size: clamp(1rem, 3.4vw, 1.6rem);
 }
 
 .tile-row {
@@ -399,6 +675,7 @@ html, body {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
 }
 
 .key:hover {
@@ -415,6 +692,10 @@ html, body {
   flex: 1.5;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
 }
 
 /* Keyboard evaluated status colors - MASSIMO CONTRASTO */
@@ -1192,11 +1473,72 @@ body.light-theme .key.key-absent {
   display: none !important;
 }
 
+/* Selettore lingua */
+.lang-pill {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 5px 8px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.lang-pill:hover:not(:disabled) {
+  border-color: var(--color-correct);
+}
+
+.lang-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 4 tab di difficoltà: testo più compatto */
+.diff-tab {
+  padding: 7px 6px;
+  font-size: 0.78rem;
+  gap: 4px;
+}
+
+.difficulty-tabs {
+  max-width: 420px;
+}
+
+.challenge-diff-tab {
+  font-size: 0.76rem;
+}
+
 /* Mobile fine-tuning */
 @media (max-height: 670px) {
   .app-header { height: 42px; }
   .logo { font-size: 1.4rem; }
-  .diff-tab { padding: 5px 8px; font-size: 0.76rem; }
+  .diff-tab { padding: 5px 5px; font-size: 0.72rem; }
   .board-container { max-height: 350px; }
   .key { height: 40px; font-size: 0.85rem; }
+}
+
+@media (max-width: 380px) {
+  .header-right, .header-left { gap: 2px; }
+  .icon-btn { padding: 4px; }
+  .lang-pill { padding: 4px 6px; font-size: 0.68rem; }
+  .logo { letter-spacing: 0.05em; }
+  .diff-tab { font-size: 0.68rem; padding: 6px 3px; }
+}
+
+/* Sfida di gruppo */
+.audience-hint {
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.btn-whatsapp-group {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
 }
