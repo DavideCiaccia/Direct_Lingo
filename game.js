@@ -1,5 +1,5 @@
 /**
- * Direct LINGO • Sfide di parole tra amici + Parola del Giorno (IT/EN, 5-8 lettere)
+ * Cassaforte • Sfide di parole tra amici + Parola del Giorno (IT/EN, 5-8 lettere)
  * Engine del gioco, logica di confronto, tastiera QWERTY e persistenza
  */
 
@@ -1137,15 +1137,15 @@
         ? (en ? `Solved in ${score}` : `Indovinata in ${score}`)
         : (en ? `Not solved (${score})` : `Non l'ho indovinata (${score})`);
       return en
-        ? `${creator ? creator + "'s challenge" : 'Challenge'} on Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nCan you do better?\n${getShareableChallengeUrl()}`
-        : `Sfida${creator ? ' di ' + creator : ''} su Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nChi fa meglio?\n${getShareableChallengeUrl()}`;
+        ? `${creator ? creator + "'s challenge" : 'Challenge'} on Cassaforte (${info})\n${verdict}\n\n${grid}\n\nCan you do better?\n${getShareableChallengeUrl()}`
+        : `Sfida${creator ? ' di ' + creator : ''} su Cassaforte (${info})\n${verdict}\n\n${grid}\n\nChi fa meglio?\n${getShareableChallengeUrl()}`;
     }
     if (en) {
       const verdict = gameStatus === 'WON' ? `I got it in ${score}!` : `I didn't get it (${score}).`;
-      return `Hi${creator ? ' ' + creator : ''}! I played your Direct LINGO challenge (${info}).\n${verdict}\n\n${grid}\n\nWant a rematch? Create a new challenge here:\n${getCleanUrl()}`;
+      return `Hi${creator ? ' ' + creator : ''}! I played your Cassaforte challenge (${info}).\n${verdict}\n\n${grid}\n\nWant a rematch? Create a new challenge here:\n${getCleanUrl()}`;
     }
     const verdict = gameStatus === 'WON' ? `L'ho indovinata in ${score}!` : `Non sono riuscito a indovinarla (${score}).`;
-    return `Ciao${creator ? ' ' + creator : ''}! Ho giocato alla tua sfida su Direct LINGO (${info}).\n${verdict}\n\n${grid}\n\nVuoi la rivincita? Crea una nuova sfida qui:\n${getCleanUrl()}`;
+    return `Ciao${creator ? ' ' + creator : ''}! Ho giocato alla tua sfida su Cassaforte (${info}).\n${verdict}\n\n${grid}\n\nVuoi la rivincita? Crea una nuova sfida qui:\n${getCleanUrl()}`;
   }
 
   function shareResult() {
@@ -1168,11 +1168,11 @@
     if (isChallengeMode && challengeData) {
       const creator = challengeData.c || 'un amico';
       shareText = isEnUi()
-        ? `${challengeData.c ? challengeData.c + "'s challenge" : 'Challenge'} on Direct LINGO (English, ${currentLength} letters)\n${scoreStr}\n\n${emojiGrid}\nTake the challenge:\n${getShareableChallengeUrl()}`
-        : `Sfida di ${creator} su Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere)\n${scoreStr} tentativi\n\n${emojiGrid}\nAccetta la sfida anche tu:\n${getShareableChallengeUrl()}`;
+        ? `${challengeData.c ? challengeData.c + "'s challenge" : 'Challenge'} on Cassaforte (English, ${currentLength} letters)\n${scoreStr}\n\n${emojiGrid}\nTake the challenge:\n${getShareableChallengeUrl()}`
+        : `Sfida di ${creator} su Cassaforte ${LANG_FLAGS[gameLang]} (${currentLength} lettere)\n${scoreStr} tentativi\n\n${emojiGrid}\nAccetta la sfida anche tu:\n${getShareableChallengeUrl()}`;
     } else {
       const label = isPracticeMode ? 'Allenamento' : dateFormatted;
-      shareText = `Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere) • ${label}\n${scoreStr} tentativi\n\n${emojiGrid}\n${getCleanUrl()}`;
+      shareText = `Cassaforte ${LANG_FLAGS[gameLang]} (${currentLength} lettere) • ${label}\n${scoreStr} tentativi\n\n${emojiGrid}\n${getCleanUrl()}`;
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1463,13 +1463,13 @@
     if (en) {
       const tentEn = n => `${n} ${n === 1 ? 'guess' : 'guesses'}`;
       if (isGroup) {
-        let msg = `${name || 'Someone'} is challenging the group on Direct LINGO (English, ${len} letters)\n`;
+        let msg = `${name || 'Someone'} is challenging the group on Cassaforte (English, ${len} letters)\n`;
         msg += `I picked a secret word: who can guess it in the fewest tries?\n`;
         if (target > 0) msg += `🎯 Score to beat: ${tentEn(target)}\n`;
         msg += `\nPlay here:\n${url}`;
         return msg;
       }
-      let msg = `${name || 'A friend'} challenged you on Direct LINGO (English, ${len} letters)\n`;
+      let msg = `${name || 'A friend'} challenged you on Cassaforte (English, ${len} letters)\n`;
       msg += target > 0
         ? `I picked a secret word: can you guess it in fewer than ${tentEn(target)}?\n\n`
         : `I picked a secret word: can you guess it?\n\n`;
@@ -1479,14 +1479,14 @@
 
     const tent = n => `${n} ${n === 1 ? 'tentativo' : 'tentativi'}`;
     if (isGroup) {
-      let msg = `${name || 'Qualcuno'} sfida il gruppo su Direct LINGO (italiano, ${len} lettere)\n`;
+      let msg = `${name || 'Qualcuno'} sfida il gruppo su Cassaforte (italiano, ${len} lettere)\n`;
       msg += `Ho scelto una parola segreta: chi la indovina in meno tentativi?\n`;
       if (target > 0) msg += `🎯 Record da battere: ${tent(target)}\n`;
       msg += `\nGioca qui:\n${url}`;
       return msg;
     }
 
-    let msg = `🔥 ${name || 'Un tuo amico'} ti ha sfidato su Direct LINGO! (${LANG_FLAGS[currentLang]} ${len} lettere)\n`;
+    let msg = `🔥 ${name || 'Un tuo amico'} ti ha sfidato su Cassaforte! (${LANG_FLAGS[currentLang]} ${len} lettere)\n`;
     if (target > 0) {
       msg += `"Ho scelto una parola segreta: riesci a indovinarla in meno di ${tent(target)}?"\n\n`;
     } else {
