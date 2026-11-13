@@ -3,12 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Direct LINGO • Sfida di Parole tra Amici</title>
+  <meta name="description" content="Un amico ha chiuso una parola in cassaforte: indovinala in 6 tentativi.">
+  <meta name="theme-color" content="#0f141c">
+  <!-- Anteprima del link su WhatsApp, Telegram e social -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Cassaforte">
+  <meta property="og:title" content="Cassaforte · Scassina la parola segreta">
+  <meta property="og:description" content="Un amico ha chiuso una parola in cassaforte: riesci ad aprirla in 6 tentativi?">
+  <meta property="og:image" content="https://raw.githubusercontent.com/DavideCiaccia/Direct_Lingo/main/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Lucchetto aperto e scritta Cassaforte: scassina la parola segreta dei tuoi amici">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/DavideCiaccia/Direct_Lingo/main/og-image.png">
+  <title>Cassaforte • Indovina la parola segreta dei tuoi amici</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23f59e0b%22/><text y=%2268%22 x=%2250%22 font-family=%22sans-serif%22 font-size=%2252%22 font-weight=%22900%22 text-anchor=%22middle%22 fill=%22white%22>⚔️</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23f59e0b%22/><text y=%2268%22 x=%2250%22 font-family=%22sans-serif%22 font-size=%2252%22 font-weight=%22900%22 text-anchor=%22middle%22 fill=%22white%22>🔐</text></svg>">
 </head>
 <body class="dark-theme">
   <!-- Toasts container -->
@@ -16,6 +30,16 @@
 
   <!-- Confetti canvas -->
   <canvas id="confetti-canvas"></canvas>
+
+  <!-- Animazione cassaforte (lucchetto) -->
+  <div id="vault-overlay" class="vault-overlay hidden" aria-hidden="true">
+    <svg class="vault-lock" viewBox="0 0 120 140" width="120" height="140">
+      <path class="vault-shackle" d="M32 62 V40 a28 28 0 0 1 56 0 V62" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+      <rect class="vault-body" x="14" y="60" width="92" height="72" rx="14" fill="currentColor"/>
+      <circle cx="60" cy="90" r="9" fill="#0f141c"/>
+      <rect x="56" y="94" width="8" height="18" rx="3" fill="#0f141c"/>
+    </svg>
+  </div>
 
   <div class="app-container">
     <!-- Header -->
@@ -38,8 +62,8 @@
       </div>
 
       <div class="header-center">
-        <h1 class="logo"><span class="logo-prefix">Direct</span> LINGO</h1>
-        <div class="date-badge" id="current-date-badge">SFIDA SOCIAL & DAILY</div>
+        <h1 class="logo">Cassaforte</h1>
+        <div class="date-badge" id="current-date-badge">SCASSINA LA PAROLA</div>
       </div>
 
       <div class="header-right">
@@ -77,9 +101,8 @@
     <!-- Top Primary Mode Navigation (Social Challenge vs Daily) -->
     <nav class="main-mode-nav">
       <button id="tab-mode-challenge" class="mode-tab active">
-        <span class="mode-icon">⚔️</span>
+        <span class="mode-icon">🔐</span>
         <span class="mode-title" data-en="Challenge a friend">Sfida un Amico</span>
-        <span class="mode-highlight-badge">VIRALE 🔥</span>
       </button>
       <button id="tab-mode-daily" class="mode-tab">
         <span class="mode-icon">📅</span>
@@ -93,10 +116,10 @@
     <section id="view-challenge-creator" class="creator-hub-container">
       <div class="creator-card">
         <div class="creator-header">
-          <div class="creator-badge">🎯 CREA & CONDIVIDI IN 10 SECONDI</div>
-          <h2 class="creator-title">Metti alla prova i tuoi amici!</h2>
+          <div class="creator-badge">PRONTA IN 10 SECONDI</div>
+          <h2 class="creator-title">Chiudi una parola in cassaforte</h2>
           <p class="creator-subtitle">
-            Scegli una parola segreta, imposta il tuo record e invia la sfida su WhatsApp. Chi riceve il link gioca gratis e senza app!
+            Scegli la parola, imposta il record e manda la sfida. Chi riceve il link prova a scassinarla.
           </p>
         </div>
 
@@ -134,7 +157,7 @@
           <!-- Parola Segreta -->
           <div class="form-row">
             <div class="label-with-action">
-              <label class="form-label" for="challenge-input-word">4. Parola Segreta:</label>
+              <label class="form-label" for="challenge-input-word">4. Parola da chiudere:</label>
               <button type="button" id="btn-random-challenge-word" class="btn-text-action">🎲 Suggeriscimi una parola</button>
             </div>
             <div class="input-with-icon">
@@ -186,7 +209,7 @@
             </div>
 
             <button type="button" id="btn-test-challenge" class="btn btn-secondary-subtle">
-              🎮 Vuoi provarla prima tu? Gioca subito questa parola
+              Prova a scassinarla tu prima di mandarla
             </button>
           </div>
         </div>
@@ -200,7 +223,7 @@
       <!-- Challenge Mode Active Duel Banner -->
       <div id="challenge-banner" class="challenge-banner hidden">
         <div class="challenge-banner-info">
-          <span class="challenge-banner-icon">⚔️</span>
+          <span class="challenge-banner-icon">🔐</span>
           <div class="challenge-banner-text">
             <div class="challenge-title-row"><strong id="challenge-creator-name">Marco</strong><span id="challenge-title-suffix"> ti ha sfidato!</span></div>
             <div id="challenge-target-sub" class="challenge-target-sub">Obiettivo: battere 4 tentativi!</div>
@@ -240,8 +263,8 @@
 
       <!-- Quick Challenge Invitation Banner during game -->
       <div id="quick-invite-banner" class="quick-invite-banner">
-        <span>⚔️ Vuoi sfidare un amico con una tua parola?</span>
-        <button id="btn-open-creator-from-game" class="btn-pill-cta">Crea Sfida</button>
+        <span>Chiudi una parola per i tuoi amici</span>
+        <button id="btn-open-creator-from-game" class="btn-pill-cta">Crea sfida</button>
       </div>
 
       <!-- Virtual Keyboard -->
@@ -257,11 +280,11 @@
   <div id="modal-help" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h2>Come Giocare a Direct LINGO</h2>
+        <h2>Come si gioca a Cassaforte</h2>
         <button class="modal-close-btn" data-close="modal-help">&times;</button>
       </div>
       <div class="modal-body help-content">
-        <p>Indovina la parola segreta in <strong>massimo 6 tentativi</strong>.</p>
+        <p>Dentro la cassaforte c'è una parola segreta: per aprirla devi indovinarla in <strong>massimo 6 tentativi</strong>.</p>
         <p>Ogni parola proposta deve esistere nel dizionario della lingua scelta (🇮🇹 italiano o 🇬🇧 inglese: cambi lingua dal pulsante in alto a destra). Puoi giocare con parole da <strong>5, 6, 7 o 8 lettere</strong>.</p>
         <p>Dopo ogni tentativo, il colore dei tasselli cambierà per darti indizi:</p>
 
@@ -304,7 +327,7 @@
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          <span><strong>Sfida gli amici:</strong> Usa la scheda "Sfida un Amico" per creare una parola a scelta e inviarla su WhatsApp!</span>
+          <span><strong>Sfida gli amici:</strong> dalla scheda "Sfida un Amico" chiudi una parola in cassaforte e manda il link su WhatsApp o Telegram, a un amico o a un gruppo.</span>
         </div>
       </div>
       <div class="modal-footer">
@@ -325,13 +348,13 @@
         <div id="endgame-panel" class="endgame-panel hidden">
           <!-- Challenge Outcome (if game was played in Challenge mode) -->
           <div id="challenge-outcome-card" class="challenge-outcome-card hidden">
-            <div id="challenge-outcome-badge" class="challenge-outcome-badge">🏆 Hai Vinto la Sfida!</div>
-            <div id="challenge-outcome-detail" class="challenge-outcome-detail">Hai indovinato in 3 tentativi contro i 4 di Marco!</div>
+            <div id="challenge-outcome-badge" class="challenge-outcome-badge">🔓 Cassaforte aperta!</div>
+            <div id="challenge-outcome-detail" class="challenge-outcome-detail"></div>
             <button id="btn-counter-challenge" class="btn btn-primary btn-counter-challenge">
-              🔥 Lancia la Contro-Sfida a <span id="counter-challenge-target-name">Marco</span>
+              Rivincita: chiudi una parola per <span id="counter-challenge-target-name">Marco</span>
             </button>
             <button id="btn-share-duel-result" class="btn btn-whatsapp-subtle">
-              💬 Invia il risultato su WhatsApp a <span id="counter-challenge-target-name-2">Marco</span>
+              Invia il risultato a <span id="counter-challenge-target-name-2">Marco</span> su WhatsApp
             </button>
           </div>
 
@@ -342,7 +365,7 @@
 
           <div class="action-buttons">
             <button id="btn-challenge-word" class="btn btn-challenge-action" title="Sfida un amico su questa parola">
-              <span data-en="⚔️ Challenge a friend with your own word">⚔️ Sfida un Amico con una tua parola</span>
+              <span data-en="Lock your own word for a friend">Chiudi una tua parola per un amico</span>
             </button>
             <button id="btn-share" class="btn btn-share">
               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
@@ -360,7 +383,7 @@
           </div>
 
           <div id="daily-countdown-wrap" class="countdown-card">
-            <span class="countdown-label">Prossimo Lingo quotidiano tra:</span>
+            <span class="countdown-label">Prossima parola del giorno tra:</span>
             <span class="countdown-timer" id="next-word-countdown">--:--:--</span>
           </div>
         </div>

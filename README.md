@@ -1,4 +1,4 @@
-# Direct LINGO • Il Gioco di Parole e Sfide Sociali tra Amici
+# Cassaforte • Il Gioco di Parole e Sfide Sociali tra Amici
 
 Un web game minimale, moderno e virale incentrato sulle **sfide asimmetriche 1-to-1** e sul puzzle quotidiano delle parole italiane.
 

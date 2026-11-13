@@ -1,5 +1,5 @@
 /**
- * Direct LINGO • Sfide di parole tra amici + Parola del Giorno (IT/EN, 5-8 lettere)
+ * Cassaforte • Sfide di parole tra amici + Parola del Giorno (IT/EN, 5-8 lettere)
  * Engine del gioco, logica di confronto, tastiera QWERTY e persistenza
  */
 
@@ -354,7 +354,7 @@
       viewGameplay.classList.add('hidden');
       tabModeChallenge.classList.add('active');
       tabModeDaily.classList.remove('active');
-      currentDateBadge.textContent = 'SFIDA UN AMICO ⚔️';
+      currentDateBadge.textContent = 'CHIUDI UNA PAROLA 🔐';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (mode === 'gameplay-daily') {
       viewChallengeCreator.classList.add('hidden');
@@ -375,7 +375,7 @@
       dailyDiffNav.classList.add('hidden');
       quickInviteBanner.classList.add('hidden');
       challengeBanner.classList.remove('hidden');
-      currentDateBadge.textContent = tr('DUELLO IN CORSO ⚔️', 'CHALLENGE ⚔️');
+      currentDateBadge.textContent = tr('SCASSINA LA PAROLA', 'CRACK THE WORD');
     }
     applyStaticUiLang();
   }
@@ -397,16 +397,16 @@
     const creator = data.c || (lang === 'en' && !data.isSelfTest ? 'A friend' : 'Un amico');
     const langNote = ` ${LANG_FLAGS[lang]} ${currentLength} lettere`;
     if (data.isSelfTest) {
-      challengeCreatorName.textContent = 'Prova Personale';
+      challengeCreatorName.textContent = 'Prova personale';
       if (challengeTitleSuffix) challengeTitleSuffix.textContent = '';
-      challengeTargetSub.textContent = `Indovina in meno tentativi possibili per fissare il tuo record! ·${langNote}`;
+      challengeTargetSub.textContent = `Scassina la tua parola: i tentativi che usi diventano il record da battere ·${langNote}`;
       challengeTargetSub.classList.remove('hidden');
     } else {
       challengeCreatorName.textContent = creator;
       const isGroup = data.m === 'g';
       if (challengeTitleSuffix) challengeTitleSuffix.textContent = isGroup
-        ? tr(' ha sfidato il gruppo!', ' challenged the group!')
-        : tr(' ti ha sfidato!', ' challenged you!');
+        ? tr(' ha chiuso una parola per il gruppo', ' locked a word for the group')
+        : tr(' ha chiuso una parola in cassaforte', ' locked a word in the safe');
       const targetT = parseInt(data.t, 10) || 0;
       const enNote = ` ${LANG_FLAGS[lang]} ${currentLength} letters`;
       if (isGroup) {
@@ -422,9 +422,8 @@
     setViewMode('gameplay-duel');
     initBoard();
     initKeyboard();
-    showToast(data.isSelfTest ? 'Gioca ora per stabilire il tuo record!'
-      : data.m === 'g' ? tr(`Sfida di gruppo di ${creator}: in bocca al lupo!`, `${creator}'s group challenge: good luck!`)
-      : tr(`Duello avviato contro ${creator}!`, `Challenge from ${creator}: good luck!`), 3000);
+    showToast(data.isSelfTest ? 'Prova a scassinarla tu'
+      : tr(`La cassaforte di ${creator} ti aspetta`, `${creator}'s safe is waiting`), 3000);
   }
 
   function exitChallengeMode() {
@@ -658,7 +657,6 @@
   // --- Animazione di Vittoria (Onda Salterina) ---
   function bounceWinningRow(rowIndex) {
     playSound('win');
-    launchConfetti();
     const tiles = boardEl.querySelectorAll(`.tile[data-row="${rowIndex}"]`);
     tiles.forEach((tile, idx) => {
       setTimeout(() => {
@@ -724,11 +722,9 @@
           updateBadges();
         }
         bounceWinningRow(currentRowIndex);
+        showVaultAnimation(true);
 
-        const praises = isEnUi()
-          ? ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!']
-          : ['Magnifico!', 'Splendido!', 'Geniale!', 'Bravissimo!', 'Colpo Maestro!'];
-        const praise = praises[Math.min(guesses.length - 1, praises.length - 1)];
+        const praise = tr('Cassaforte aperta!', 'Safe cracked!');
         setTimeout(() => {
           showToast(praise, 3000);
           setTimeout(openStatsModal, 1500);
@@ -742,7 +738,8 @@
         }
 
         setTimeout(() => {
-          showToast(tr(`Peccato! La parola era ${targetWord}`, `So close! The word was ${targetWord}`), 4000);
+          showVaultAnimation(false);
+          showToast(tr(`Allarme scattato! La parola era ${targetWord}`, `Alarm triggered! The word was ${targetWord}`), 4000);
           setTimeout(openStatsModal, 1800);
         }, 800);
       } else {
@@ -1041,7 +1038,7 @@
       if (isChallengeMode && challengeData) {
         challengeOutcomeCard.classList.remove('hidden');
         document.getElementById('daily-countdown-wrap').classList.add('hidden');
-        document.getElementById('solution-label-text').textContent = tr('La parola segreta della sfida era:', 'The secret word was:');
+        document.getElementById('solution-label-text').textContent = tr('Nella cassaforte c’era:', 'Inside the safe:');
 
         const creator = challengeData.c || 'Un amico';
         counterChallengeTargetName.textContent = creator;
@@ -1053,46 +1050,47 @@
         btnShareDuelResult.classList.toggle('hidden', isSelfTest);
         // In gruppo l'azione principale è pubblicare la griglia (la chat diventa la classifica)
         if (isGroup) {
-          btnShareDuelResult.textContent = tr('📋 Pubblica la tua griglia nel gruppo', '📋 Post your grid in the group');
+          btnShareDuelResult.textContent = tr('Pubblica la tua griglia nel gruppo', 'Post your grid in the group');
           btnShareDuelResult.className = 'btn btn-primary btn-whatsapp-group';
-          btnCounterChallenge.textContent = tr('🔥 Lancia tu la prossima sfida al gruppo', '🔥 Set the next challenge for the group');
+          btnCounterChallenge.textContent = tr('Chiudi tu la prossima parola per il gruppo', 'Lock the next word for the group');
           btnCounterChallenge.className = 'btn btn-whatsapp-subtle';
           btnShareDuelResult.parentNode.insertBefore(btnShareDuelResult, btnCounterChallenge);
         } else {
-          btnCounterChallenge.textContent = challengeData.c ? tr(`🔥 Lancia la Contro-Sfida a ${challengeData.c}`, `🔥 Challenge ${challengeData.c} back`) : tr('🔥 Lancia la Contro-Sfida', '🔥 Challenge them back');
+          btnCounterChallenge.textContent = challengeData.c ? tr(`Rivincita: chiudi una parola per ${challengeData.c}`, `Rematch: lock a word for ${challengeData.c}`) : tr('Rivincita: chiudi tu una parola', 'Rematch: lock a word yourself');
           btnCounterChallenge.className = 'btn btn-primary btn-counter-challenge';
-          btnShareDuelResult.textContent = challengeData.c ? tr(`💬 Invia il risultato su WhatsApp a ${challengeData.c}`, `💬 Send your result to ${challengeData.c} on WhatsApp`) : tr('💬 Invia il risultato su WhatsApp', '💬 Send your result on WhatsApp');
+          btnShareDuelResult.textContent = challengeData.c ? tr(`Invia il risultato a ${challengeData.c} su WhatsApp`, `Send your result to ${challengeData.c} on WhatsApp`) : tr('Invia il risultato su WhatsApp', 'Send your result on WhatsApp');
           btnShareDuelResult.className = 'btn btn-whatsapp-subtle';
           btnCounterChallenge.parentNode.insertBefore(btnCounterChallenge, btnShareDuelResult);
         }
 
+        const n = guesses.length;
+        const tIt = k => `${k} ${k === 1 ? 'tentativo' : 'tentativi'}`;
+        const tEn = k => `${k} ${k === 1 ? 'guess' : 'guesses'}`;
         if (isSelfTest) {
           if (gameStatus === 'WON') {
-            challengeOutcomeBadge.textContent = `🎯 Record: ${guesses.length} ${guesses.length === 1 ? "tentativo" : "tentativi"}`;
-            challengeOutcomeDetail.textContent = `Torna su "Sfida un Amico": imposta ${guesses.length} come tentativi da battere e invia la sfida.`;
+            challengeOutcomeBadge.textContent = `🎯 Record: ${tIt(n)}`;
+            challengeOutcomeDetail.textContent = `Torna su "Sfida un Amico", imposta ${n} come tentativi da battere e manda la sfida.`;
           } else {
-            challengeOutcomeBadge.textContent = '😅 Non indovinata!';
+            challengeOutcomeBadge.textContent = '🔒 Non sei riuscito ad aprirla';
             challengeOutcomeDetail.textContent = 'Forse è troppo difficile: perfetta per mettere in crisi i tuoi amici.';
           }
         } else if (gameStatus === 'WON') {
-          if (targetT > 0) {
-            if (guesses.length < targetT) {
-              challengeOutcomeBadge.textContent = tr(`🏆 Hai Battuto ${creator}!`, `🏆 You beat ${creator}!`);
-              challengeOutcomeDetail.textContent = tr(`Incredibile! Hai indovinato in ${guesses.length} tentativi contro i ${targetT} impiegati da ${creator}!`, `Amazing! You got it in ${guesses.length} vs ${creator}'s ${targetT}.`);
-            } else if (guesses.length === targetT) {
-              challengeOutcomeBadge.textContent = tr(`🤝 Pareggio con ${creator}!`, `🤝 It's a tie with ${creator}!`);
-              challengeOutcomeDetail.textContent = tr(`Entrambi avete indovinato la parola esattamente in ${guesses.length} tentativi!`, `You both got it in exactly ${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}.`);
-            } else {
-              challengeOutcomeBadge.textContent = tr('👍 Sfida Superata!', '👍 Solved!');
-              challengeOutcomeDetail.textContent = tr(`Hai indovinato la parola in ${guesses.length} tentativi (${creator} era stato più veloce con ${targetT} tentativi).`, `You got it in ${guesses.length}, but ${creator} was faster with ${targetT}.`);
-            }
+          if (targetT > 0 && n < targetT) {
+            challengeOutcomeBadge.textContent = tr(`🔓 Hai battuto ${creator}!`, `🔓 You beat ${creator}!`);
+            challengeOutcomeDetail.textContent = tr(`Cassaforte aperta in ${tIt(n)}, contro i ${targetT} di ${creator}.`, `Safe cracked in ${tEn(n)}, vs ${creator}'s ${targetT}.`);
+          } else if (targetT > 0 && n === targetT) {
+            challengeOutcomeBadge.textContent = tr(`🔓 Pareggio con ${creator}`, `🔓 It's a tie with ${creator}`);
+            challengeOutcomeDetail.textContent = tr(`Cassaforte aperta in ${tIt(n)}, proprio come ${creator}.`, `Safe cracked in ${tEn(n)}, same as ${creator}.`);
+          } else if (targetT > 0) {
+            challengeOutcomeBadge.textContent = tr('🔓 Cassaforte aperta!', '🔓 Safe cracked!');
+            challengeOutcomeDetail.textContent = tr(`Ce l'hai fatta in ${tIt(n)}, ma ${creator} era stato più veloce (${targetT}).`, `You made it in ${tEn(n)}, but ${creator} was faster (${targetT}).`);
           } else {
-            challengeOutcomeBadge.textContent = tr('🏆 Sfida Superata!', '🏆 Solved!');
-            challengeOutcomeDetail.textContent = tr(`Hai indovinato la parola segreta scelta da ${creator} in ${guesses.length} tentativi!`, `You guessed ${creator}'s secret word in ${guesses.length} ${guesses.length === 1 ? 'guess' : 'guesses'}!`);
+            challengeOutcomeBadge.textContent = tr('🔓 Cassaforte aperta!', '🔓 Safe cracked!');
+            challengeOutcomeDetail.textContent = tr(`Hai scassinato la parola di ${creator} in ${tIt(n)}.`, `You cracked ${creator}'s word in ${tEn(n)}.`);
           }
         } else {
-          challengeOutcomeBadge.textContent = tr('💀 Sfida Persa!', '💀 Challenge lost!');
-          challengeOutcomeDetail.textContent = tr(`Non sei riuscito a indovinare la parola in 6 tentativi. Questa volta il punto va a ${creator}!`, `You didn't get it in 6 guesses. This round goes to ${creator}!`);
+          challengeOutcomeBadge.textContent = tr('🔒 Cassaforte blindata', '🔒 Locked tight');
+          challengeOutcomeDetail.textContent = tr(`Niente da fare in 6 tentativi: questa volta vince ${creator}.`, `No luck in 6 guesses: this round goes to ${creator}.`);
         }
       } else {
         challengeOutcomeCard.classList.add('hidden');
@@ -1132,20 +1130,16 @@
     const grid = buildEmojiGrid();
     const en = isEnUi();
     const info = en ? `English, ${currentLength} letters` : `${gameLang === 'en' ? 'inglese' : 'italiano'}, ${currentLength} lettere`;
+    const won = gameStatus === 'WON';
     if (challengeData.m === 'g') {
-      const verdict = gameStatus === 'WON'
-        ? (en ? `Solved in ${score}` : `Indovinata in ${score}`)
-        : (en ? `Not solved (${score})` : `Non l'ho indovinata (${score})`);
       return en
-        ? `${creator ? creator + "'s challenge" : 'Challenge'} on Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nCan you do better?\n${getShareableChallengeUrl()}`
-        : `Sfida${creator ? ' di ' + creator : ''} su Direct LINGO (${info})\n${verdict}\n\n${grid}\n\nChi fa meglio?\n${getShareableChallengeUrl()}`;
+        ? `${creator ? creator + "'s safe" : 'The safe'} on Cassaforte (${info})\n${won ? `Cracked in ${score}` : `Still locked (${score})`}\n\n${grid}\n\nCan you do better?\n${getShareableChallengeUrl()}`
+        : `La cassaforte${creator ? ' di ' + creator : ''} (${info})\n${won ? `Aperta in ${score}` : `Ancora chiusa (${score})`}\n\n${grid}\n\nChi fa meglio?\n${getShareableChallengeUrl()}`;
     }
     if (en) {
-      const verdict = gameStatus === 'WON' ? `I got it in ${score}!` : `I didn't get it (${score}).`;
-      return `Hi${creator ? ' ' + creator : ''}! I played your Direct LINGO challenge (${info}).\n${verdict}\n\n${grid}\n\nWant a rematch? Create a new challenge here:\n${getCleanUrl()}`;
+      return `Hi${creator ? ' ' + creator : ''}! I tried to crack your safe on Cassaforte (${info}).\n${won ? `Cracked it in ${score}!` : `Couldn't crack it (${score}).`}\n\n${grid}\n\nRematch? Lock a word for me here:\n${getCleanUrl()}`;
     }
-    const verdict = gameStatus === 'WON' ? `L'ho indovinata in ${score}!` : `Non sono riuscito a indovinarla (${score}).`;
-    return `Ciao${creator ? ' ' + creator : ''}! Ho giocato alla tua sfida su Direct LINGO (${info}).\n${verdict}\n\n${grid}\n\nVuoi la rivincita? Crea una nuova sfida qui:\n${getCleanUrl()}`;
+    return `Ciao${creator ? ' ' + creator : ''}! Ho provato ad aprire la tua cassaforte (${info}).\n${won ? `Aperta in ${score}!` : `Non ce l'ho fatta (${score}).`}\n\n${grid}\n\nRivincita? Chiudi una parola per me qui:\n${getCleanUrl()}`;
   }
 
   function shareResult() {
@@ -1168,16 +1162,16 @@
     if (isChallengeMode && challengeData) {
       const creator = challengeData.c || 'un amico';
       shareText = isEnUi()
-        ? `${challengeData.c ? challengeData.c + "'s challenge" : 'Challenge'} on Direct LINGO (English, ${currentLength} letters)\n${scoreStr}\n\n${emojiGrid}\nTake the challenge:\n${getShareableChallengeUrl()}`
-        : `Sfida di ${creator} su Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere)\n${scoreStr} tentativi\n\n${emojiGrid}\nAccetta la sfida anche tu:\n${getShareableChallengeUrl()}`;
+        ? `${challengeData.c ? challengeData.c + "'s safe" : 'The safe'} on Cassaforte (English, ${currentLength} letters)\n${scoreStr}\n\n${emojiGrid}\nTry to crack it:\n${getShareableChallengeUrl()}`
+        : `La cassaforte di ${creator} (${gameLang === 'en' ? 'inglese' : 'italiano'}, ${currentLength} lettere)\n${scoreStr}\n\n${emojiGrid}\nProva ad aprirla anche tu:\n${getShareableChallengeUrl()}`;
     } else {
       const label = isPracticeMode ? 'Allenamento' : dateFormatted;
-      shareText = `Direct LINGO ${LANG_FLAGS[gameLang]} (${currentLength} lettere) • ${label}\n${scoreStr} tentativi\n\n${emojiGrid}\n${getCleanUrl()}`;
+      shareText = `Cassaforte (${gameLang === 'en' ? 'inglese' : 'italiano'}, ${currentLength} lettere) • ${label}\n${scoreStr}\n\n${emojiGrid}\n${getCleanUrl()}`;
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(shareText).then(() => {
-        showToast(tr('Risultato copiato negli appunti! 📋', 'Result copied to clipboard! 📋'));
+        showToast(tr('Risultato copiato', 'Result copied'));
       }).catch(() => {
         promptFallbackShare(shareText);
       });
@@ -1220,6 +1214,17 @@
   setInterval(updateCountdown, 1000);
   updateCountdown();
 
+  // --- Animazione Cassaforte: lucchetto che si apre (vittoria) o resta chiuso (sconfitta) ---
+  function showVaultAnimation(opened) {
+    const overlay = document.getElementById('vault-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden', 'vault-open', 'vault-locked', 'vault-show');
+    void overlay.offsetWidth; // riavvia l'animazione
+    overlay.classList.add('vault-show', opened ? 'vault-open' : 'vault-locked');
+    if (opened) setTimeout(launchConfetti, 650);
+    setTimeout(() => overlay.classList.add('hidden'), opened ? 1900 : 1600);
+  }
+
   // --- Effetto Coriandoli (Confetti Canvas Puro) ---
   function launchConfetti() {
     const canvas = document.getElementById('confetti-canvas');
@@ -1229,7 +1234,7 @@
     canvas.height = window.innerHeight;
 
     const pieces = [];
-    const colors = ['#10b981', '#eab308', '#3b82f6', '#ec4899', '#8b5cf6', '#ffffff'];
+    const colors = ['#f59e0b', '#fbbf24', '#fde68a', '#10b981', '#ffffff']; // oro e verde: il bottino
 
     for (let i = 0; i < 90; i++) {
       pieces.push({
@@ -1463,36 +1468,34 @@
     if (en) {
       const tentEn = n => `${n} ${n === 1 ? 'guess' : 'guesses'}`;
       if (isGroup) {
-        let msg = `${name || 'Someone'} is challenging the group on Direct LINGO (English, ${len} letters)\n`;
-        msg += `I picked a secret word: who can guess it in the fewest tries?\n`;
+        let msg = `${name || 'Someone'} is challenging the group on Cassaforte (English, ${len} letters)\n`;
+        msg += `I locked a word in the safe: who can crack it in the fewest guesses?\n`;
         if (target > 0) msg += `🎯 Score to beat: ${tentEn(target)}\n`;
-        msg += `\nPlay here:\n${url}`;
+        msg += `\nCrack it here:\n${url}`;
         return msg;
       }
-      let msg = `${name || 'A friend'} challenged you on Direct LINGO (English, ${len} letters)\n`;
+      let msg = `${name || 'A friend'} challenged you on Cassaforte (English, ${len} letters)\n`;
       msg += target > 0
-        ? `I picked a secret word: can you guess it in fewer than ${tentEn(target)}?\n\n`
-        : `I picked a secret word: can you guess it?\n\n`;
-      msg += `Play here:\n${url}`;
+        ? `I locked a word in the safe: can you crack it in fewer than ${tentEn(target)}?\n`
+        : `I locked a word in the safe: can you crack it?\n`;
+      msg += `\nCrack it here:\n${url}`;
       return msg;
     }
 
     const tent = n => `${n} ${n === 1 ? 'tentativo' : 'tentativi'}`;
     if (isGroup) {
-      let msg = `${name || 'Qualcuno'} sfida il gruppo su Direct LINGO (italiano, ${len} lettere)\n`;
-      msg += `Ho scelto una parola segreta: chi la indovina in meno tentativi?\n`;
+      let msg = `${name || 'Qualcuno'} sfida il gruppo su Cassaforte (italiano, ${len} lettere)\n`;
+      msg += `Ho chiuso una parola in cassaforte: chi la apre in meno tentativi?\n`;
       if (target > 0) msg += `🎯 Record da battere: ${tent(target)}\n`;
-      msg += `\nGioca qui:\n${url}`;
+      msg += `\nScassinala qui:\n${url}`;
       return msg;
     }
 
-    let msg = `🔥 ${name || 'Un tuo amico'} ti ha sfidato su Direct LINGO! (${LANG_FLAGS[currentLang]} ${len} lettere)\n`;
-    if (target > 0) {
-      msg += `"Ho scelto una parola segreta: riesci a indovinarla in meno di ${tent(target)}?"\n\n`;
-    } else {
-      msg += `"Ho scelto una parola segreta: riuscirai a indovinarla?"\n\n`;
-    }
-    msg += `👉 Clicca qui e accetta la sfida:\n${url}`;
+    let msg = `${name || 'Un tuo amico'} ti sfida su Cassaforte (italiano, ${len} lettere)\n`;
+    msg += target > 0
+      ? `Ho chiuso una parola in cassaforte: riesci ad aprirla in meno di ${tent(target)}?\n`
+      : `Ho chiuso una parola in cassaforte: riesci ad aprirla?\n`;
+    msg += `\nScassinala qui:\n${url}`;
     return msg;
   }
 
@@ -1627,7 +1630,7 @@
     const msg = getChallengeShareMessage();
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(msg).then(() => {
-        showToast('Link e messaggio di sfida copiati! 📋');
+        showToast('Link e messaggio copiati');
       }).catch(() => {
         promptFallbackShare(msg);
       });
