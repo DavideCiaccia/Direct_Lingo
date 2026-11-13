@@ -17,6 +17,16 @@
   <!-- Confetti canvas -->
   <canvas id="confetti-canvas"></canvas>
 
+  <!-- Animazione cassaforte (lucchetto) -->
+  <div id="vault-overlay" class="vault-overlay hidden" aria-hidden="true">
+    <svg class="vault-lock" viewBox="0 0 120 140" width="120" height="140">
+      <path class="vault-shackle" d="M32 62 V40 a28 28 0 0 1 56 0 V62" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+      <rect class="vault-body" x="14" y="60" width="92" height="72" rx="14" fill="currentColor"/>
+      <circle cx="60" cy="90" r="9" fill="#0f141c"/>
+      <rect x="56" y="94" width="8" height="18" rx="3" fill="#0f141c"/>
+    </svg>
+  </div>
+
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
@@ -39,7 +49,7 @@
 
       <div class="header-center">
         <h1 class="logo">Cassaforte</h1>
-        <div class="date-badge" id="current-date-badge">SFIDA SOCIAL & DAILY</div>
+        <div class="date-badge" id="current-date-badge">SCASSINA LA PAROLA</div>
       </div>
 
       <div class="header-right">
@@ -93,10 +103,10 @@
     <section id="view-challenge-creator" class="creator-hub-container">
       <div class="creator-card">
         <div class="creator-header">
-          <div class="creator-badge">🎯 CREA & CONDIVIDI IN 10 SECONDI</div>
-          <h2 class="creator-title">Metti alla prova i tuoi amici!</h2>
+          <div class="creator-badge">PRONTA IN 10 SECONDI</div>
+          <h2 class="creator-title">Chiudi una parola in cassaforte</h2>
           <p class="creator-subtitle">
-            Scegli una parola segreta, imposta il tuo record e invia la sfida su WhatsApp. Chi riceve il link gioca gratis e senza app!
+            Scegli la parola, imposta il record e manda la sfida. Chi riceve il link prova a scassinarla dal browser: niente app, niente registrazione.
           </p>
         </div>
 
@@ -134,7 +144,7 @@
           <!-- Parola Segreta -->
           <div class="form-row">
             <div class="label-with-action">
-              <label class="form-label" for="challenge-input-word">4. Parola Segreta:</label>
+              <label class="form-label" for="challenge-input-word">4. Parola da chiudere:</label>
               <button type="button" id="btn-random-challenge-word" class="btn-text-action">🎲 Suggeriscimi una parola</button>
             </div>
             <div class="input-with-icon">
@@ -186,7 +196,7 @@
             </div>
 
             <button type="button" id="btn-test-challenge" class="btn btn-secondary-subtle">
-              🎮 Vuoi provarla prima tu? Gioca subito questa parola
+              Prova a scassinarla tu prima di mandarla
             </button>
           </div>
         </div>
@@ -200,7 +210,7 @@
       <!-- Challenge Mode Active Duel Banner -->
       <div id="challenge-banner" class="challenge-banner hidden">
         <div class="challenge-banner-info">
-          <span class="challenge-banner-icon">⚔️</span>
+          <span class="challenge-banner-icon">🔐</span>
           <div class="challenge-banner-text">
             <div class="challenge-title-row"><strong id="challenge-creator-name">Marco</strong><span id="challenge-title-suffix"> ti ha sfidato!</span></div>
             <div id="challenge-target-sub" class="challenge-target-sub">Obiettivo: battere 4 tentativi!</div>
@@ -261,7 +271,7 @@
         <button class="modal-close-btn" data-close="modal-help">&times;</button>
       </div>
       <div class="modal-body help-content">
-        <p>Indovina la parola segreta in <strong>massimo 6 tentativi</strong>.</p>
+        <p>Dentro la cassaforte c'è una parola segreta: per aprirla devi indovinarla in <strong>massimo 6 tentativi</strong>.</p>
         <p>Ogni parola proposta deve esistere nel dizionario della lingua scelta (🇮🇹 italiano o 🇬🇧 inglese: cambi lingua dal pulsante in alto a destra). Puoi giocare con parole da <strong>5, 6, 7 o 8 lettere</strong>.</p>
         <p>Dopo ogni tentativo, il colore dei tasselli cambierà per darti indizi:</p>
 
@@ -304,7 +314,7 @@
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          <span><strong>Sfida gli amici:</strong> Usa la scheda "Sfida un Amico" per creare una parola a scelta e inviarla su WhatsApp!</span>
+          <span><strong>Sfida gli amici:</strong> dalla scheda "Sfida un Amico" chiudi una parola in cassaforte e manda il link su WhatsApp o Telegram, a un amico o a un gruppo.</span>
         </div>
       </div>
       <div class="modal-footer">
@@ -325,13 +335,13 @@
         <div id="endgame-panel" class="endgame-panel hidden">
           <!-- Challenge Outcome (if game was played in Challenge mode) -->
           <div id="challenge-outcome-card" class="challenge-outcome-card hidden">
-            <div id="challenge-outcome-badge" class="challenge-outcome-badge">🏆 Hai Vinto la Sfida!</div>
-            <div id="challenge-outcome-detail" class="challenge-outcome-detail">Hai indovinato in 3 tentativi contro i 4 di Marco!</div>
+            <div id="challenge-outcome-badge" class="challenge-outcome-badge">🔓 Cassaforte aperta!</div>
+            <div id="challenge-outcome-detail" class="challenge-outcome-detail"></div>
             <button id="btn-counter-challenge" class="btn btn-primary btn-counter-challenge">
-              🔥 Lancia la Contro-Sfida a <span id="counter-challenge-target-name">Marco</span>
+              Rivincita: chiudi una parola per <span id="counter-challenge-target-name">Marco</span>
             </button>
             <button id="btn-share-duel-result" class="btn btn-whatsapp-subtle">
-              💬 Invia il risultato su WhatsApp a <span id="counter-challenge-target-name-2">Marco</span>
+              Invia il risultato a <span id="counter-challenge-target-name-2">Marco</span> su WhatsApp
             </button>
           </div>
 
@@ -342,7 +352,7 @@
 
           <div class="action-buttons">
             <button id="btn-challenge-word" class="btn btn-challenge-action" title="Sfida un amico su questa parola">
-              <span data-en="⚔️ Challenge a friend with your own word">⚔️ Sfida un Amico con una tua parola</span>
+              <span data-en="Lock your own word for a friend">Chiudi una tua parola per un amico</span>
             </button>
             <button id="btn-share" class="btn btn-share">
               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
